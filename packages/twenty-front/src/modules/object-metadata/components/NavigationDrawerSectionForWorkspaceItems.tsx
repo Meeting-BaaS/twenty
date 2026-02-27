@@ -81,10 +81,6 @@ export const NavigationDrawerSectionForWorkspaceItems = ({
     NavigationDropTargetContext,
   );
 
-  console.log({
-    items,
-  });
-
   const flatItems = items.filter((item) => !isDefined(item.folderId));
   const isAddToNavigationDropTargetVisible =
     addToNavigationFallbackDestination?.droppableId ===
@@ -104,10 +100,6 @@ export const NavigationDrawerSectionForWorkspaceItems = ({
   const folderCount = flatItems.filter(
     (item) => item.itemType === NavigationMenuItemType.FOLDER,
   ).length;
-
-  console.log({
-    flatItems,
-  });
 
   const filteredItems = flatItems.filter((item) => {
     const type = item.itemType;
@@ -167,10 +159,6 @@ export const NavigationDrawerSectionForWorkspaceItems = ({
   if (flatItems.length === 0 && !isAddToNavigationDropTargetVisible) {
     return null;
   }
-
-  console.log({
-    filteredItems,
-  });
 
   return (
     <NavigationDrawerSection>
