@@ -1,16 +1,20 @@
-import { Field, InputType } from '@nestjs/graphql';
+import { Field, Float, InputType } from '@nestjs/graphql';
 
 import {
   IsBoolean,
   IsEnum,
   IsNotEmpty,
+  IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUUID,
 } from 'class-validator';
+import GraphQLJSON from 'graphql-type-json';
 
 import { UUIDScalarType } from 'src/engine/api/graphql/workspace-schema-builder/graphql-types/scalars';
-import { CommandMenuItemAvailabilityType } from 'src/engine/metadata-modules/command-menu-item/entities/command-menu-item.entity';
+import { CommandMenuItemAvailabilityType } from 'src/engine/metadata-modules/command-menu-item/enums/command-menu-item-availability-type.enum';
+import { EngineComponentKey } from 'src/engine/metadata-modules/command-menu-item/enums/engine-component-key.enum';
 
 @InputType()
 export class CreateCommandMenuItemInput {
@@ -24,6 +28,11 @@ export class CreateCommandMenuItemInput {
   @Field(() => UUIDScalarType, { nullable: true })
   frontComponentId?: string;
 
+  @IsEnum(EngineComponentKey)
+  @IsNotEmpty()
+  @Field(() => EngineComponentKey)
+  engineComponentKey: EngineComponentKey;
+
   @IsString()
   @IsNotEmpty()
   @Field()
@@ -33,6 +42,16 @@ export class CreateCommandMenuItemInput {
   @IsOptional()
   @Field({ nullable: true })
   icon?: string;
+
+  @IsString()
+  @IsOptional()
+  @Field({ nullable: true })
+  shortLabel?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Field(() => Float, { nullable: true })
+  position?: number;
 
   @IsBoolean()
   @IsOptional()
@@ -44,8 +63,23 @@ export class CreateCommandMenuItemInput {
   @Field(() => CommandMenuItemAvailabilityType, { nullable: true })
   availabilityType?: CommandMenuItemAvailabilityType;
 
+  @IsString({ each: true })
+  @IsOptional()
+  @Field(() => [String], { nullable: true })
+  hotKeys?: string[];
+
+  @IsString()
+  @IsOptional()
+  @Field({ nullable: true })
+  conditionalAvailabilityExpression?: string;
+
   @IsUUID()
   @IsOptional()
   @Field(() => UUIDScalarType, { nullable: true })
   availabilityObjectMetadataId?: string;
+
+  @IsObject()
+  @IsOptional()
+  @Field(() => GraphQLJSON, { nullable: true })
+  payload?: Record<string, unknown>;
 }

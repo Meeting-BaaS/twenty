@@ -71,9 +71,9 @@ export const useSaveRecordFilterGroupsToViewFilterGroups = () => {
     await performViewFilterGroupAPIUpdate(viewFilterGroupsToUpdate);
     await performViewFilterGroupAPIDelete(viewFilterGroupIdsToDelete);
   }, [
-    store,
     canPersistChanges,
     currentView,
+    store,
     currentRecordFilterGroupsCallbackState,
     performViewFilterGroupAPICreate,
     performViewFilterGroupAPIUpdate,

@@ -2,7 +2,7 @@ import { type MockedResponse } from '@apollo/client/testing';
 import { renderHook, waitFor } from '@testing-library/react';
 import { act, type ReactNode } from 'react';
 
-import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
+import { CoreObjectNameSingular } from 'twenty-shared/types';
 import { generateUpdateOneRecordMutation } from '@/object-metadata/utils/generateUpdateOneRecordMutation';
 import { useUpdateOneRecord } from '@/object-record/hooks/useUpdateOneRecord';
 import { booleanFieldDefinition } from '@/object-record/record-field/ui/__mocks__/fieldDefinitions';
@@ -14,7 +14,7 @@ import {
 import { useToggleEditOnlyInput } from '@/object-record/record-field/ui/hooks/useToggleEditOnlyInput';
 import { generateMockRecordNode } from '~/testing/utils/generateMockRecordNode';
 import { getJestMetadataAndApolloMocksWrapper } from '~/testing/jest/getJestMetadataAndApolloMocksWrapper';
-import { generatedMockObjectMetadataItems } from '~/testing/utils/generatedMockObjectMetadataItems';
+import { getTestEnrichedObjectMetadataItemsMock } from '~/testing/utils/getTestEnrichedObjectMetadataItemsMock';
 import { getMockObjectMetadataItemOrThrow } from '~/testing/utils/getMockObjectMetadataItemOrThrow';
 
 const recordId = 'recordId';
@@ -22,7 +22,7 @@ const recordId = 'recordId';
 const companyObjectMetadataItem = getMockObjectMetadataItemOrThrow('company');
 const updateOneCompanyMutation = generateUpdateOneRecordMutation({
   objectMetadataItem: companyObjectMetadataItem,
-  objectMetadataItems: generatedMockObjectMetadataItems,
+  objectMetadataItems: getTestEnrichedObjectMetadataItemsMock(),
   computeReferences: false,
   objectPermissionsByObjectMetadataId: {},
 });

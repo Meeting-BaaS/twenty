@@ -1,6 +1,7 @@
-import { FIND_ONE_PAGE_LAYOUT } from '@/dashboards/graphql/queries/findOnePageLayout';
 import { DEFAULT_COMPANY_RECORD_PAGE_LAYOUT } from '@/page-layout/constants/DefaultCompanyRecordPageLayout';
 import { DEFAULT_COMPANY_RECORD_PAGE_LAYOUT_ID } from '@/page-layout/constants/DefaultCompanyRecordPageLayoutId';
+import { DEFAULT_MESSAGE_THREAD_RECORD_PAGE_LAYOUT } from '@/page-layout/constants/DefaultMessageThreadRecordPageLayout';
+import { DEFAULT_MESSAGE_THREAD_RECORD_PAGE_LAYOUT_ID } from '@/page-layout/constants/DefaultMessageThreadRecordPageLayoutId';
 import { DEFAULT_NOTE_RECORD_PAGE_LAYOUT } from '@/page-layout/constants/DefaultNoteRecordPageLayout';
 import { DEFAULT_NOTE_RECORD_PAGE_LAYOUT_ID } from '@/page-layout/constants/DefaultNoteRecordPageLayoutId';
 import { DEFAULT_OPPORTUNITY_RECORD_PAGE_LAYOUT } from '@/page-layout/constants/DefaultOpportunityRecordPageLayout';
@@ -21,8 +22,9 @@ import { recordPageLayoutFromIdFamilySelector } from '@/page-layout/states/selec
 import { type PageLayout } from '@/page-layout/types/PageLayout';
 import { transformPageLayout } from '@/page-layout/utils/transformPageLayout';
 import { useAtomFamilySelectorValue } from '@/ui/utilities/state/jotai/hooks/useAtomFamilySelectorValue';
-import { useQuery } from '@apollo/client';
+import { useQuery } from '@apollo/client/react';
 import { isDefined } from 'twenty-shared/utils';
+import { FindOnePageLayoutDocument } from '~/generated-metadata/graphql';
 
 const getDefaultLayoutById = (layoutId: string): PageLayout => {
   switch (layoutId) {
@@ -42,6 +44,8 @@ const getDefaultLayoutById = (layoutId: string): PageLayout => {
       return DEFAULT_WORKFLOW_VERSION_PAGE_LAYOUT;
     case DEFAULT_WORKFLOW_RUN_PAGE_LAYOUT_ID:
       return DEFAULT_WORKFLOW_RUN_PAGE_LAYOUT;
+    case DEFAULT_MESSAGE_THREAD_RECORD_PAGE_LAYOUT_ID:
+      return DEFAULT_MESSAGE_THREAD_RECORD_PAGE_LAYOUT;
     case DEFAULT_RECORD_PAGE_LAYOUT_ID:
     default:
       return DEFAULT_RECORD_PAGE_LAYOUT;
@@ -57,7 +61,8 @@ const isDefaultLayoutId = (layoutId: string): boolean =>
   layoutId === DEFAULT_TASK_RECORD_PAGE_LAYOUT_ID ||
   layoutId === DEFAULT_WORKFLOW_PAGE_LAYOUT_ID ||
   layoutId === DEFAULT_WORKFLOW_VERSION_PAGE_LAYOUT_ID ||
-  layoutId === DEFAULT_WORKFLOW_RUN_PAGE_LAYOUT_ID;
+  layoutId === DEFAULT_WORKFLOW_RUN_PAGE_LAYOUT_ID ||
+  layoutId === DEFAULT_MESSAGE_THREAD_RECORD_PAGE_LAYOUT_ID;
 
 export const useBasePageLayout = (
   pageLayoutId: string,
@@ -71,7 +76,7 @@ export const useBasePageLayout = (
 
   const shouldSkipQuery = isDefaultLayout || isDefined(cachedRecordPageLayout);
 
-  const { data } = useQuery(FIND_ONE_PAGE_LAYOUT, {
+  const { data } = useQuery(FindOnePageLayoutDocument, {
     variables: {
       id: pageLayoutId,
     },

@@ -44,6 +44,7 @@ export const fromCreatePageLayoutTabInputToFlatPageLayoutTabToCreate = ({
     id: pageLayoutTabId,
     title: createPageLayoutTabInput.title,
     position: createPageLayoutTabInput.position ?? 0,
+    isActive: true,
     pageLayoutId: createPageLayoutTabInput.pageLayoutId,
     pageLayoutUniversalIdentifier,
     workspaceId,
@@ -56,6 +57,8 @@ export const fromCreatePageLayoutTabInputToFlatPageLayoutTabToCreate = ({
     widgetIds: [],
     widgetUniversalIdentifiers: [],
     icon: null,
-    layoutMode: PageLayoutTabLayoutMode.GRID,
+    layoutMode:
+      createPageLayoutTabInput.layoutMode ?? PageLayoutTabLayoutMode.GRID,
+    overrides: null,
   };
 };

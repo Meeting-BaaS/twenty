@@ -1,10 +1,10 @@
 import {
   PageLayoutTabLayoutMode,
+  type GridPosition,
   type PageLayoutWidgetCanvasPosition,
   type PageLayoutWidgetConditionalDisplay,
   type PageLayoutWidgetGridPosition,
   type PageLayoutWidgetVerticalListPosition,
-  type GridPosition,
 } from 'twenty-shared/types';
 
 import { WidgetType } from 'src/engine/metadata-modules/page-layout-widget/enums/widget-type.enum';
@@ -66,6 +66,18 @@ export const VERTICAL_LIST_LAYOUT_POSITIONS = {
   FIRST: {
     layoutMode: PageLayoutTabLayoutMode.VERTICAL_LIST,
     index: 0,
+  },
+  SECOND: {
+    layoutMode: PageLayoutTabLayoutMode.VERTICAL_LIST,
+    index: 1,
+  },
+  THIRD: {
+    layoutMode: PageLayoutTabLayoutMode.VERTICAL_LIST,
+    index: 2,
+  },
+  FOURTH: {
+    layoutMode: PageLayoutTabLayoutMode.VERTICAL_LIST,
+    index: 3,
   },
 } as const satisfies Record<string, PageLayoutWidgetVerticalListPosition>;
 
@@ -210,5 +222,11 @@ export const WIDGET_PROPS = {
     type: WidgetType.WORKFLOW_RUN,
     gridPosition: GRID_POSITIONS.FULL_WIDTH,
     position: CANVAS_LAYOUT_POSITIONS.DEFAULT,
+  },
+  emailThread: {
+    title: 'Thread',
+    type: WidgetType.EMAIL_THREAD,
+    gridPosition: GRID_POSITIONS.FULL_WIDTH,
+    position: VERTICAL_LIST_LAYOUT_POSITIONS.SECOND,
   },
 } as const;

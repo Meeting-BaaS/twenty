@@ -6,7 +6,8 @@ import React, { useContext, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Pill } from '@ui/components/Pill/Pill';
-import { ThemeContext, themeCssVariables } from '@ui/theme';
+import { ThemeContext, themeCssVariables } from '@ui/theme-constants';
+import { GRAY_SCALE_LIGHT } from '@ui/theme/constants/GrayScaleLight';
 import {
   type ButtonAccent,
   type ButtonPosition,
@@ -106,7 +107,7 @@ const computeAnimatedButtonDynamicStyles = (
                 }`
               : 'none';
           result.color = !inverted
-            ? themeCssVariables.grayScale.gray1
+            ? GRAY_SCALE_LIGHT.gray1
             : themeCssVariables.color.blue;
           if (!disabled) {
             result.hoverBackground = !inverted
@@ -170,10 +171,10 @@ const computeAnimatedButtonDynamicStyles = (
                 : 'transparent'
             : variant === 'secondary'
               ? focus || disabled
-                ? themeCssVariables.grayScale.gray1
+                ? GRAY_SCALE_LIGHT.gray1
                 : themeCssVariables.background.transparent.primary
               : focus
-                ? themeCssVariables.grayScale.gray1
+                ? GRAY_SCALE_LIGHT.gray1
                 : 'transparent';
           result.borderWidthOverride = '1px 1px 1px 1px';
           result.boxShadow =
@@ -212,10 +213,10 @@ const computeAnimatedButtonDynamicStyles = (
                 : 'transparent'
             : variant === 'secondary'
               ? focus || disabled
-                ? themeCssVariables.grayScale.gray1
+                ? GRAY_SCALE_LIGHT.gray1
                 : themeCssVariables.background.transparent.primary
               : focus
-                ? themeCssVariables.grayScale.gray1
+                ? GRAY_SCALE_LIGHT.gray1
                 : 'transparent';
           result.borderWidthOverride = '1px 1px 1px 1px';
           result.boxShadow =
@@ -254,10 +255,10 @@ const computeAnimatedButtonDynamicStyles = (
                 : 'transparent'
             : variant === 'secondary'
               ? focus || disabled
-                ? themeCssVariables.grayScale.gray1
+                ? GRAY_SCALE_LIGHT.gray1
                 : themeCssVariables.background.transparent.primary
               : focus
-                ? themeCssVariables.grayScale.gray1
+                ? GRAY_SCALE_LIGHT.gray1
                 : 'transparent';
           result.borderWidthOverride = '1px 1px 1px 1px';
           result.boxShadow =
@@ -367,7 +368,8 @@ const StyledButton = styled.button<
   }
 `;
 
-const StyledSoonPill = styled(Pill)`
+const StyledSoonPillContainer = styled.span`
+  display: flex;
   margin-left: auto;
 `;
 
@@ -412,10 +414,8 @@ const StyledShortcutLabel = styled.div<{
   font-weight: ${themeCssVariables.font.weight.medium};
 `;
 
-const StyledIconContainer = styled(motion.div)`
+const StyledMotion = styled(motion.div)`
   display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 export const AnimatedButton = ({
@@ -490,14 +490,14 @@ export const AnimatedButton = ({
       data-globally-prevent-click-outside={dataGloballyPreventClickOutside}
     >
       {Icon && (
-        <StyledIconContainer animate={animate} transition={transition}>
+        <StyledMotion animate={animate} transition={transition}>
           <Icon size={theme.icon.size.sm} />
-        </StyledIconContainer>
+        </StyledMotion>
       )}
       {animatedSvg && (
-        <StyledIconContainer animate={animate} transition={transition}>
+        <StyledMotion animate={animate} transition={transition}>
           {animatedSvg}
-        </StyledIconContainer>
+        </StyledMotion>
       )}
       {title}
       {hotkeys && !isMobile && (
@@ -508,7 +508,11 @@ export const AnimatedButton = ({
           </StyledShortcutLabel>
         </>
       )}
-      {soon && <StyledSoonPill label={soonLabel} />}
+      {soon && (
+        <StyledSoonPillContainer>
+          <Pill label={soonLabel} />
+        </StyledSoonPillContainer>
+      )}
     </StyledButton>
   );
 };

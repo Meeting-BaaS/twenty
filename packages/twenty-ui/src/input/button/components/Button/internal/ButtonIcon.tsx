@@ -2,7 +2,7 @@ import { styled } from '@linaria/react';
 import { type IconComponent } from '@ui/display';
 import { Loader } from '@ui/feedback';
 import { baseTransitionTiming } from '@ui/input/button/components/Button/constant';
-import { ThemeContext, themeCssVariables } from '@ui/theme';
+import { ThemeContext, themeCssVariables } from '@ui/theme-constants';
 import { useContext } from 'react';
 
 const StyledIcon = styled.div<{
@@ -44,6 +44,7 @@ export const ButtonIcon = ({
   isLoading?: boolean;
 }) => {
   const { theme } = useContext(ThemeContext);
+
   return (
     <StyledIconWrapper>
       {isLoading && (

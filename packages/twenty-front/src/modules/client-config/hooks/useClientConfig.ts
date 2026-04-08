@@ -6,13 +6,14 @@ import { billingState } from '@/client-config/states/billingState';
 import { calendarBookingPageIdState } from '@/client-config/states/calendarBookingPageIdState';
 import { canManageFeatureFlagsState } from '@/client-config/states/canManageFeatureFlagsState';
 import { captchaState } from '@/client-config/states/captchaState';
-import { chromeExtensionIdState } from '@/client-config/states/chromeExtensionIdState';
 import { isAnalyticsEnabledState } from '@/client-config/states/isAnalyticsEnabledState';
 import { isAttachmentPreviewEnabledState } from '@/client-config/states/isAttachmentPreviewEnabledState';
 import { isConfigVariablesInDbEnabledState } from '@/client-config/states/isConfigVariablesInDbEnabledState';
 import { isDeveloperDefaultSignInPrefilledState } from '@/client-config/states/isDeveloperDefaultSignInPrefilledState';
 import { isClickHouseConfiguredState } from '@/client-config/states/isClickHouseConfiguredState';
 import { isCloudflareIntegrationEnabledState } from '@/client-config/states/isCloudflareIntegrationEnabledState';
+import { isDDLLockedState } from '@/client-config/states/isDDLLockedState';
+import { maintenanceModeState } from '@/client-config/states/maintenanceModeState';
 import { isEmailingDomainsEnabledState } from '@/client-config/states/isEmailingDomainsEnabledState';
 import { isEmailVerificationRequiredState } from '@/client-config/states/isEmailVerificationRequiredState';
 import { isGoogleCalendarEnabledState } from '@/client-config/states/isGoogleCalendarEnabledState';
@@ -67,8 +68,6 @@ export const useClientConfig = (): UseClientConfigResult => {
 
   const setCaptcha = useSetAtomState(captchaState);
 
-  const setChromeExtensionId = useSetAtomState(chromeExtensionIdState);
-
   const setApiConfig = useSetAtomState(apiConfigState);
 
   const setCanManageFeatureFlags = useSetAtomState(canManageFeatureFlagsState);
@@ -120,6 +119,10 @@ export const useClientConfig = (): UseClientConfigResult => {
     isClickHouseConfiguredState,
   );
 
+  const setIsDDLLocked = useSetAtomState(isDDLLockedState);
+
+  const setMaintenanceMode = useSetAtomState(maintenanceModeState);
+
   const setAppVersion = useSetAtomState(appVersionState);
 
   const fetchClientConfig = useCallback(async () => {
@@ -151,7 +154,7 @@ export const useClientConfig = (): UseClientConfigResult => {
         magicLink: false,
         sso: clientConfig.authProviders.sso,
       });
-      setAiModels(clientConfig.aiModels || []);
+      setAiModels(clientConfig.aiModels ?? []);
       setIsAnalyticsEnabled(clientConfig.analyticsEnabled);
       setIsDeveloperDefaultSignInPrefilled(clientConfig.signInPrefilled);
       setIsMultiWorkspaceEnabled(clientConfig.isMultiWorkspaceEnabled);
@@ -170,7 +173,6 @@ export const useClientConfig = (): UseClientConfigResult => {
         siteKey: clientConfig?.captcha?.siteKey,
       });
 
-      setChromeExtensionId(clientConfig?.chromeExtensionId);
       setApiConfig(clientConfig?.api);
       setDomainConfiguration({
         defaultSubdomain: clientConfig?.defaultSubdomain,
@@ -199,6 +201,8 @@ export const useClientConfig = (): UseClientConfigResult => {
         clientConfig?.isCloudflareIntegrationEnabled,
       );
       setIsClickHouseConfigured(clientConfig?.isClickHouseConfigured ?? false);
+      setIsDDLLocked(clientConfig?.isWorkspaceSchemaDDLLocked ?? false);
+      setMaintenanceMode(clientConfig?.maintenance ?? null);
     } catch (err) {
       const error =
         err instanceof Error ? err : new Error('Failed to fetch client config');
@@ -219,7 +223,6 @@ export const useClientConfig = (): UseClientConfigResult => {
     setCalendarBookingPageId,
     setCanManageFeatureFlags,
     setCaptcha,
-    setChromeExtensionId,
     setClientConfigApiStatus,
     setDomainConfiguration,
     setIsGoogleCalendarEnabled,
@@ -234,7 +237,9 @@ export const useClientConfig = (): UseClientConfigResult => {
     setIsEmailingDomainsEnabled,
     setIsClickHouseConfigured,
     setIsCloudflareIntegrationEnabled,
+    setIsDDLLocked,
     setLabPublicFeatureFlags,
+    setMaintenanceMode,
     setIsMicrosoftCalendarEnabled,
     setIsMicrosoftMessagingEnabled,
     setSentryConfig,

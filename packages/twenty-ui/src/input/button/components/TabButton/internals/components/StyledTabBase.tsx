@@ -1,5 +1,5 @@
 import { styled } from '@linaria/react';
-import { themeCssVariables } from '@ui/theme';
+import { themeCssVariables } from '@ui/theme-constants';
 
 export const StyledTabButton = styled.button<{
   active?: boolean;
@@ -72,6 +72,7 @@ export const StyledTabContainer = styled.div<{
 export const StyledTabHover = styled.span<{
   contentSize?: 'sm' | 'md';
 }>`
+  box-sizing: border-box;
   display: flex;
   gap: ${themeCssVariables.spacing[1]};
   padding: ${({ contentSize }) =>

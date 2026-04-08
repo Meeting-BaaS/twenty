@@ -1,7 +1,6 @@
 import { styled } from '@linaria/react';
-import { themeCssVariables } from '@ui/theme';
+import { themeCssVariables } from '@ui/theme-constants';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
 
 export type ProgressBarProps = {
   value: number;
@@ -26,18 +25,19 @@ const StyledBar = styled.div<StyledBarProps>`
   width: 100%;
 `;
 
-const StyledBarFillingBase = styled.div<{
+const StyledBarFilling = styled.div<{
   barColor?: string;
   withBorderRadius?: boolean;
 }>`
   background-color: ${({ barColor }) =>
     barColor ?? themeCssVariables.font.color.primary};
-  height: 100%;
   border-radius: ${({ withBorderRadius }) =>
     withBorderRadius ? themeCssVariables.border.radius.md : '0'};
+  height: 100%;
+  width: 100%;
 `;
 
-const StyledBarFilling = motion.create(StyledBarFillingBase);
+const MIN_BAR_WIDTH_PX = 12;
 
 export const ProgressBar = ({
   value,
@@ -45,24 +45,26 @@ export const ProgressBar = ({
   barColor,
   backgroundColor = 'none',
   withBorderRadius = false,
-}: ProgressBarProps) => {
-  const [initialValue] = useState(value);
-
-  return (
-    <StyledBar
-      className={className}
-      backgroundColor={backgroundColor}
-      withBorderRadius={withBorderRadius}
-      role="progressbar"
-      aria-valuenow={Math.ceil(value)}
+}: ProgressBarProps) => (
+  <StyledBar
+    className={className}
+    backgroundColor={backgroundColor}
+    withBorderRadius={withBorderRadius}
+    role="progressbar"
+    aria-valuenow={Math.ceil(value)}
+  >
+    <motion.div
+      style={{
+        height: '100%',
+        minWidth: value > 0 ? MIN_BAR_WIDTH_PX : 0,
+      }}
+      animate={{ width: `${Math.ceil(value)}%` }}
+      transition={{ duration: 0.3, ease: 'linear' }}
     >
       <StyledBarFilling
-        initial={{ width: `${initialValue}%` }}
-        animate={{ width: `${value}%` }}
         barColor={barColor}
-        transition={{ ease: 'linear' }}
         withBorderRadius={withBorderRadius}
       />
-    </StyledBar>
-  );
-};
+    </motion.div>
+  </StyledBar>
+);

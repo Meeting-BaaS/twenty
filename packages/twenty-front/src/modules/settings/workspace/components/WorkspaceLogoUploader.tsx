@@ -1,23 +1,16 @@
 import { currentWorkspaceState } from '@/auth/states/currentWorkspaceState';
 import { useAtomState } from '@/ui/utilities/state/jotai/hooks/useAtomState';
 import { ImageInput } from '@/ui/input/components/ImageInput';
-import { useIsFeatureEnabled } from '@/workspace/hooks/useIsFeatureEnabled';
-import { buildSignedPath } from 'twenty-shared/utils';
+import { useMutation } from '@apollo/client/react';
 import {
-  FeatureFlagKey,
-  useUpdateWorkspaceMutation,
-  useUploadWorkspaceLogoLegacyMutation,
-  useUploadWorkspaceLogoMutation,
+  UpdateWorkspaceDocument,
+  UploadWorkspaceLogoDocument,
 } from '~/generated-metadata/graphql';
 import { isUndefinedOrNull } from '~/utils/isUndefinedOrNull';
 
 export const WorkspaceLogoUploader = () => {
-  const isCorePictureMigrated = useIsFeatureEnabled(
-    FeatureFlagKey.IS_CORE_PICTURE_MIGRATED,
-  );
-  const [uploadLogoLegacy] = useUploadWorkspaceLogoLegacyMutation();
-  const [uploadLogo] = useUploadWorkspaceLogoMutation();
-  const [updateWorkspace] = useUpdateWorkspaceMutation();
+  const [uploadLogo] = useMutation(UploadWorkspaceLogoDocument);
+  const [updateWorkspace] = useMutation(UpdateWorkspaceDocument);
   const [currentWorkspace, setCurrentWorkspace] = useAtomState(
     currentWorkspaceState,
   );
@@ -30,31 +23,17 @@ export const WorkspaceLogoUploader = () => {
       throw new Error('Workspace id not found');
     }
 
-    if (isCorePictureMigrated) {
-      await uploadLogo({
-        variables: {
-          file,
-        },
-        onCompleted: (data) => {
-          setCurrentWorkspace({
-            ...currentWorkspace,
-            logo: data.uploadWorkspaceLogo.url,
-          });
-        },
-      });
-    } else {
-      await uploadLogoLegacy({
-        variables: {
-          file,
-        },
-        onCompleted: (data) => {
-          setCurrentWorkspace({
-            ...currentWorkspace,
-            logo: buildSignedPath(data.uploadWorkspaceLogoLegacy),
-          });
-        },
-      });
-    }
+    await uploadLogo({
+      variables: {
+        file,
+      },
+      onCompleted: (data) => {
+        setCurrentWorkspace({
+          ...currentWorkspace,
+          logo: data.uploadWorkspaceLogo.url,
+        });
+      },
+    });
   };
 
   const onRemove = async () => {

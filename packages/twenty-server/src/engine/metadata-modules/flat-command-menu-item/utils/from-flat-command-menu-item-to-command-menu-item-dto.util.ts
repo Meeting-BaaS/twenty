@@ -7,10 +7,17 @@ export const fromFlatCommandMenuItemToCommandMenuItemDto = (
   id: flatCommandMenuItem.id,
   workflowVersionId: flatCommandMenuItem.workflowVersionId ?? undefined,
   frontComponentId: flatCommandMenuItem.frontComponentId ?? undefined,
+  engineComponentKey: flatCommandMenuItem.engineComponentKey,
   label: flatCommandMenuItem.label,
   icon: flatCommandMenuItem.icon ?? undefined,
+  shortLabel: flatCommandMenuItem.shortLabel ?? undefined,
+  position: flatCommandMenuItem.position,
   isPinned: flatCommandMenuItem.isPinned,
+  payload: flatCommandMenuItem.payload ?? undefined,
+  hotKeys: flatCommandMenuItem.hotKeys ?? undefined,
   availabilityType: flatCommandMenuItem.availabilityType,
+  conditionalAvailabilityExpression:
+    flatCommandMenuItem.conditionalAvailabilityExpression ?? undefined,
   availabilityObjectMetadataId:
     flatCommandMenuItem.availabilityObjectMetadataId ?? undefined,
   workspaceId: flatCommandMenuItem.workspaceId,

@@ -1,4 +1,3 @@
-import { t } from '@lingui/core/macro';
 import { FormFieldInputContainer } from '@/object-record/record-field/ui/form-types/components/FormFieldInputContainer';
 import { FormFieldInputInnerContainer } from '@/object-record/record-field/ui/form-types/components/FormFieldInputInnerContainer';
 import { FormFieldInputRowContainer } from '@/object-record/record-field/ui/form-types/components/FormFieldInputRowContainer';
@@ -8,7 +7,7 @@ import { TextInput } from '@/ui/field/input/components/TextInput';
 import { InputHint } from '@/ui/input/components/InputHint';
 import { InputLabel } from '@/ui/input/components/InputLabel';
 import { isStandaloneVariableString } from '@/workflow/utils/isStandaloneVariableString';
-import styled from '@emotion/styled';
+import { t } from '@lingui/core/macro';
 import isEmpty from 'lodash.isempty';
 import { useId, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
@@ -16,10 +15,6 @@ import {
   canBeCastAsNumberOrNull,
   castAsNumberOrNull,
 } from '~/utils/cast-as-number-or-null';
-
-const StyledInput = styled(TextInput)`
-  padding: ${({ theme }) => `${theme.spacing(1)} ${theme.spacing(2)}`};
-`;
 
 type FormNumberFieldInputProps = {
   label?: string;
@@ -113,7 +108,7 @@ export const FormNumberFieldInput = ({
           onBlur={onBlur}
         >
           {draftValue.type === 'static' ? (
-            <StyledInput
+            <TextInput
               instanceId={instanceId}
               placeholder={
                 isDefined(placeholder) && !isEmpty(placeholder)

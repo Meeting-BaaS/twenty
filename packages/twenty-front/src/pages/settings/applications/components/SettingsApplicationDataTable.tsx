@@ -1,23 +1,19 @@
+import { SettingsEmptyPlaceholder } from '@/settings/components/SettingsEmptyPlaceholder';
 import { SETTINGS_OBJECT_TABLE_COLUMN_WIDTH } from '@/settings/data-model/object-details/components/SettingsObjectItemTableRowStyledComponents';
 import { Table } from '@/ui/layout/table/components/Table';
 import { TableHeader } from '@/ui/layout/table/components/TableHeader';
 import { TableRow } from '@/ui/layout/table/components/TableRow';
 import { TableSection } from '@/ui/layout/table/components/TableSection';
-import styled from '@emotion/styled';
+import { styled } from '@linaria/react';
 import { t } from '@lingui/core/macro';
 import { useMemo, useState } from 'react';
 import { H2Title } from 'twenty-ui/display';
 import { SearchInput } from 'twenty-ui/input';
 import { Section } from 'twenty-ui/layout';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
+
 import { SettingsApplicationDataTableRow } from '~/pages/settings/applications/components/SettingsApplicationDataTableRow';
 import { normalizeSearchText } from '~/utils/normalizeSearchText';
-
-export type ApplicationDataTableFieldItem = {
-  key: string;
-  label: string;
-  icon?: string;
-  type: string;
-};
 
 export type ApplicationDataTableRow = {
   key: string;
@@ -25,7 +21,6 @@ export type ApplicationDataTableRow = {
   icon?: string;
   fieldsCount: number;
   link?: string;
-  fields?: ApplicationDataTableFieldItem[];
   tagItem: {
     isCustom?: boolean;
     isRemote?: boolean;
@@ -35,18 +30,14 @@ export type ApplicationDataTableRow = {
 
 const MAIN_ROW_GRID_COLUMNS = `180px 1fr ${SETTINGS_OBJECT_TABLE_COLUMN_WIDTH} 36px`;
 
-const StyledEmptyHeader = styled(TableHeader)`
-  min-width: 0;
+const StyledEmptyHeaderContainer = styled.div`
+  > div {
+    min-width: 0;
+  }
 `;
 
 const StyledSearchInputContainer = styled.div`
-  padding-bottom: ${({ theme }) => theme.spacing(2)};
-`;
-
-const StyledEmptyState = styled.div`
-  color: ${({ theme }) => theme.font.color.tertiary};
-  padding: ${({ theme }) => theme.spacing(8)};
-  text-align: center;
+  padding-bottom: ${themeCssVariables.spacing[2]};
 `;
 
 export const SettingsApplicationDataTable = ({
@@ -57,21 +48,6 @@ export const SettingsApplicationDataTable = ({
   fieldGroupRows: ApplicationDataTableRow[];
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-
-  const toggleRow = (key: string) => {
-    setExpandedRows((previous) => {
-      const next = new Set(previous);
-
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-
-      return next;
-    });
-  };
 
   const filteredObjectRows = useMemo(() => {
     const normalizedSearch = normalizeSearchText(searchTerm);
@@ -121,36 +97,28 @@ export const SettingsApplicationDataTable = ({
         />
       </StyledSearchInputContainer>
       {hasNoResults ? (
-        <StyledEmptyState>{t`No object found`}</StyledEmptyState>
+        <SettingsEmptyPlaceholder>{t`No object found`}</SettingsEmptyPlaceholder>
       ) : (
         <Table>
           <TableRow gridAutoColumns={MAIN_ROW_GRID_COLUMNS}>
             <TableHeader>{t`Name`}</TableHeader>
             <TableHeader>{t`App`}</TableHeader>
             <TableHeader align="right">{t`Fields`}</TableHeader>
-            <StyledEmptyHeader />
+            <StyledEmptyHeaderContainer>
+              <TableHeader />
+            </StyledEmptyHeaderContainer>
           </TableRow>
           {shouldDisplayObjects && (
             <TableSection title={t`Objects`}>
               {filteredObjectRows.map((row) => (
-                <SettingsApplicationDataTableRow
-                  key={row.key}
-                  row={row}
-                  isExpanded={expandedRows.has(row.key)}
-                  onToggle={() => toggleRow(row.key)}
-                />
+                <SettingsApplicationDataTableRow key={row.key} row={row} />
               ))}
             </TableSection>
           )}
           {shouldDisplayFields && (
             <TableSection title={t`Fields`}>
               {filteredFieldGroupRows.map((row) => (
-                <SettingsApplicationDataTableRow
-                  key={row.key}
-                  row={row}
-                  isExpanded={expandedRows.has(row.key)}
-                  onToggle={() => toggleRow(row.key)}
-                />
+                <SettingsApplicationDataTableRow key={row.key} row={row} />
               ))}
             </TableSection>
           )}

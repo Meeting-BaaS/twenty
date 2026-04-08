@@ -3,7 +3,7 @@ import React, { useContext } from 'react';
 import { styled } from '@linaria/react';
 
 import { IconCheck } from '@ui/display/icon/components/TablerIcons';
-import { ThemeContext, themeCssVariables } from '@ui/theme';
+import { ThemeContext, themeCssVariables } from '@ui/theme-constants';
 
 const StyledContainer = styled.div`
   align-items: center;

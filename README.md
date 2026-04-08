@@ -25,8 +25,8 @@
 # Installation
 
 See:
-🚀 [Self-hosting](https://docs.twenty.com/developers/self-hosting/docker-compose)
-🖥️ [Local Setup](https://docs.twenty.com/developers/local-setup)
+🚀 [Self-hosting](https://docs.twenty.com/developers/self-host/capabilities/docker-compose)
+🖥️ [Local Setup](https://docs.twenty.com/developers/contribute/capabilities/local-setup)
 
 # Why Twenty
 
@@ -36,7 +36,7 @@ We built Twenty for three reasons:
 
 **A fresh start is required to build a better experience.** We can learn from past mistakes and craft a cohesive experience inspired by new UX patterns from tools like Notion, Airtable or Linear.
 
-**We believe in Open-source and community.** Hundreds of developers are already building Twenty together. Once we have plugin capabilities, a whole ecosystem will grow around it.
+**We believe in open-source and community.** Hundreds of developers are already building Twenty together. Once we have plugin capabilities, a whole ecosystem will grow around it.
 
 <br />
 
@@ -109,7 +109,7 @@ Below are a few features we have implemented to date:
 - [TypeScript](https://www.typescriptlang.org/)
 - [Nx](https://nx.dev/)
 - [NestJS](https://nestjs.com/), with [BullMQ](https://bullmq.io/), [PostgreSQL](https://www.postgresql.org/), [Redis](https://redis.io/)
-- [React](https://reactjs.org/), with [Jotai](https://jotai.org/), [Emotion](https://emotion.sh/) and [Lingui](https://lingui.dev/)
+- [React](https://reactjs.org/), with [Jotai](https://jotai.org/), [Linaria](https://linaria.dev/) and [Lingui](https://lingui.dev/)
 
 
 

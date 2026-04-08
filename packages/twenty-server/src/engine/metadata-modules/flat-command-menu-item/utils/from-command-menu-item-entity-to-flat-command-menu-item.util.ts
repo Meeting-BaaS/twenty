@@ -61,9 +61,14 @@ export const fromCommandMenuItemEntityToFlatCommandMenuItem = ({
     id: commandMenuItemEntity.id,
     workflowVersionId: commandMenuItemEntity.workflowVersionId,
     frontComponentId: commandMenuItemEntity.frontComponentId,
+    engineComponentKey: commandMenuItemEntity.engineComponentKey,
     label: commandMenuItemEntity.label,
     icon: commandMenuItemEntity.icon,
+    shortLabel: commandMenuItemEntity.shortLabel,
+    position: commandMenuItemEntity.position,
     isPinned: commandMenuItemEntity.isPinned,
+    payload: commandMenuItemEntity.payload,
+    hotKeys: commandMenuItemEntity.hotKeys,
     availabilityType: commandMenuItemEntity.availabilityType,
     availabilityObjectMetadataId:
       commandMenuItemEntity.availabilityObjectMetadataId,
@@ -73,6 +78,8 @@ export const fromCommandMenuItemEntityToFlatCommandMenuItem = ({
     createdAt: commandMenuItemEntity.createdAt.toISOString(),
     updatedAt: commandMenuItemEntity.updatedAt.toISOString(),
     applicationUniversalIdentifier,
+    conditionalAvailabilityExpression:
+      commandMenuItemEntity.conditionalAvailabilityExpression,
     availabilityObjectMetadataUniversalIdentifier,
     frontComponentUniversalIdentifier,
   };

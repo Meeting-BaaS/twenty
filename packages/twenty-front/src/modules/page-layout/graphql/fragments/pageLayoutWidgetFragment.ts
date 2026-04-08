@@ -6,9 +6,11 @@ export const PAGE_LAYOUT_WIDGET_FRAGMENT = gql`
     title
     type
     objectMetadataId
+    isOverridden
     createdAt
     updatedAt
     deletedAt
+    conditionalDisplay
     gridPosition {
       column
       columnSpan
@@ -157,8 +159,13 @@ export const PAGE_LAYOUT_WIDGET_FRAGMENT = gql`
       ... on EmailsConfiguration {
         configurationType
       }
+      ... on EmailThreadConfiguration {
+        configurationType
+      }
       ... on FieldConfiguration {
         configurationType
+        fieldDisplayMode
+        fieldMetadataId
       }
       ... on FieldRichTextConfiguration {
         configurationType
@@ -166,6 +173,8 @@ export const PAGE_LAYOUT_WIDGET_FRAGMENT = gql`
       ... on FieldsConfiguration {
         configurationType
         viewId
+        newFieldDefaultVisibility
+        shouldAllowUserToSeeHiddenFields
       }
       ... on FilesConfiguration {
         configurationType
@@ -181,6 +190,10 @@ export const PAGE_LAYOUT_WIDGET_FRAGMENT = gql`
       }
       ... on ViewConfiguration {
         configurationType
+      }
+      ... on RecordTableConfiguration {
+        configurationType
+        viewId
       }
       ... on WorkflowConfiguration {
         configurationType

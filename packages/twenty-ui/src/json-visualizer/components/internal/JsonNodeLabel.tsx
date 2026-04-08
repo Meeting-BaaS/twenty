@@ -1,7 +1,7 @@
 import { styled } from '@linaria/react';
 import { type IconComponent } from '@ui/display';
 import { type JsonNodeHighlighting } from '@ui/json-visualizer/types/JsonNodeHighlighting';
-import { ThemeContext, themeCssVariables } from '@ui/theme';
+import { ThemeContext, themeCssVariables } from '@ui/theme-constants';
 import { useContext } from 'react';
 
 const StyledLabelContainer = styled.span<{

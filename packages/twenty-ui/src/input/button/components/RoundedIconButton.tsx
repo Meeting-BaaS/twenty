@@ -1,6 +1,6 @@
 import { styled } from '@linaria/react';
 import { type IconComponent } from '@ui/display';
-import { ThemeContext, themeCssVariables } from '@ui/theme';
+import { ThemeContext, themeCssVariables } from '@ui/theme-constants';
 import { useContext } from 'react';
 
 export type RoundedIconButtonSize = 'small' | 'medium';
@@ -22,6 +22,10 @@ const StyledIconButton = styled.button<{
   transition:
     color 0.1s ease-in-out,
     background 0.1s ease-in-out;
+
+  &:hover:not(:disabled) {
+    background: ${themeCssVariables.color.blue10};
+  }
 
   &:disabled {
     background: ${themeCssVariables.background.quaternary};

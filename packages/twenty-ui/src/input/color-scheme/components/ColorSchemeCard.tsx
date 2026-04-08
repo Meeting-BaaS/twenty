@@ -2,17 +2,15 @@ import { styled } from '@linaria/react';
 import { Checkmark } from '@ui/display/checkmark/components/Checkmark';
 import { type ColorScheme } from '@ui/input/types/ColorScheme';
 import {
-  GRAY_SCALE_DARK,
-  GRAY_SCALE_LIGHT,
-  themeCssVariables,
-} from '@ui/theme';
-import {
   AnimatePresence,
   type AnimationControls,
   motion,
   useAnimation,
 } from 'framer-motion';
 import React from 'react';
+import { GRAY_SCALE_DARK } from '@ui/theme/constants/GrayScaleDark';
+import { GRAY_SCALE_LIGHT } from '@ui/theme/constants/GrayScaleLight';
+import { themeCssVariables } from '@ui/theme-constants';
 
 const StyledColorSchemeBackground = styled.div<
   Pick<ColorSchemeCardProps, 'variant'>
@@ -30,10 +28,10 @@ const StyledColorSchemeBackground = styled.div<
   border: ${({ variant }) => {
     switch (variant) {
       case 'Dark':
-        return `1px solid ${GRAY_SCALE_DARK.gray5};`;
+        return `1px solid ${GRAY_SCALE_DARK.gray5}`;
       case 'Light':
       default:
-        return `1px solid ${GRAY_SCALE_LIGHT.gray5};`;
+        return `1px solid ${GRAY_SCALE_LIGHT.gray5}`;
     }
   }};
   border-radius: ${themeCssVariables.border.radius.md};
@@ -64,20 +62,20 @@ const StyledColorSchemeContentBase = styled.div<
   border-left: ${({ variant }) => {
     switch (variant) {
       case 'Dark':
-        return `1px solid ${GRAY_SCALE_DARK.gray5};`;
+        return `1px solid ${GRAY_SCALE_DARK.gray5}`;
       case 'Light':
       default:
-        return `1px solid ${GRAY_SCALE_LIGHT.gray5};`;
+        return `1px solid ${GRAY_SCALE_LIGHT.gray5}`;
     }
   }};
   border-radius: ${themeCssVariables.border.radius.md} 0px 0px 0px;
   border-top: ${({ variant }) => {
     switch (variant) {
       case 'Dark':
-        return `1px solid ${GRAY_SCALE_DARK.gray5};`;
+        return `1px solid ${GRAY_SCALE_DARK.gray5}`;
       case 'Light':
       default:
-        return `1px solid ${GRAY_SCALE_LIGHT.gray5};`;
+        return `1px solid ${GRAY_SCALE_LIGHT.gray5}`;
     }
   }};
   box-sizing: border-box;

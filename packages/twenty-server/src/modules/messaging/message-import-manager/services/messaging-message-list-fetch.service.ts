@@ -1,10 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 
 import { isNonEmptyString } from '@sniptt/guards';
 import chunk from 'lodash.chunk';
 import { isDefined } from 'twenty-shared/utils';
-import { In, MoreThanOrEqual } from 'typeorm';
+import { In, MoreThanOrEqual, Repository } from 'typeorm';
 
+import {
+  MessageChannelPendingGroupEmailsAction,
+  MessageChannelSyncStage,
+  MessageFolderPendingSyncAction,
+} from 'twenty-shared/types';
 import { InjectCacheStorage } from 'src/engine/core-modules/cache-storage/decorators/cache-storage.decorator';
 import { CacheStorageService } from 'src/engine/core-modules/cache-storage/services/cache-storage.service';
 import { CacheStorageNamespace } from 'src/engine/core-modules/cache-storage/types/cache-storage-namespace.enum';
@@ -12,12 +18,6 @@ import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspac
 import { buildSystemAuthContext } from 'src/engine/twenty-orm/utils/build-system-auth-context.util';
 import { MessageChannelSyncStatusService } from 'src/modules/messaging/common/services/message-channel-sync-status.service';
 import { type MessageChannelMessageAssociationWorkspaceEntity } from 'src/modules/messaging/common/standard-objects/message-channel-message-association.workspace-entity';
-import {
-  MessageChannelPendingGroupEmailsAction,
-  MessageChannelSyncStage,
-  MessageChannelWorkspaceEntity,
-} from 'src/modules/messaging/common/standard-objects/message-channel.workspace-entity';
-import { MessageFolderPendingSyncAction } from 'src/modules/messaging/common/standard-objects/message-folder.workspace-entity';
 import { MessagingMessageCleanerService } from 'src/modules/messaging/message-cleaner/services/messaging-message-cleaner.service';
 import { SyncMessageFoldersService } from 'src/modules/messaging/message-folder-manager/services/sync-message-folders.service';
 import { MessagingAccountAuthenticationService } from 'src/modules/messaging/message-import-manager/services/messaging-account-authentication.service';
@@ -30,6 +30,7 @@ import {
 import { MessagingMessagesImportService } from 'src/modules/messaging/message-import-manager/services/messaging-messages-import.service';
 import { MessagingProcessFolderActionsService } from 'src/modules/messaging/message-import-manager/services/messaging-process-folder-actions.service';
 import { MessagingProcessGroupEmailActionsService } from 'src/modules/messaging/message-import-manager/services/messaging-process-group-email-actions.service';
+import { MessageChannelEntity } from 'src/engine/metadata-modules/message-channel/entities/message-channel.entity';
 
 const ONE_WEEK_IN_MILLISECONDS = 7 * 24 * 60 * 60 * 1000;
 
@@ -41,6 +42,8 @@ export class MessagingMessageListFetchService {
     private readonly cacheStorage: CacheStorageService,
     private readonly messageChannelSyncStatusService: MessageChannelSyncStatusService,
     private readonly globalWorkspaceOrmManager: GlobalWorkspaceOrmManager,
+    @InjectRepository(MessageChannelEntity)
+    private readonly messageChannelRepository: Repository<MessageChannelEntity>,
     private readonly messagingGetMessageListService: MessagingGetMessageListService,
     private readonly messageImportErrorHandlerService: MessageImportExceptionHandlerService,
     private readonly messagingMessageCleanerService: MessagingMessageCleanerService,
@@ -53,7 +56,7 @@ export class MessagingMessageListFetchService {
   ) {}
 
   public async processMessageListFetch(
-    messageChannel: MessageChannelWorkspaceEntity,
+    messageChannel: MessageChannelEntity,
     workspaceId: string,
   ) {
     const authContext = buildSystemAuthContext(workspaceId);
@@ -78,19 +81,14 @@ export class MessagingMessageListFetchService {
           `WorkspaceId: ${workspaceId}, MessageChannelId: ${messageChannel.id} - Processing message list fetch`,
         );
 
-        const messageChannelRepository =
-          await this.globalWorkspaceOrmManager.getRepository<MessageChannelWorkspaceEntity>(
-            workspaceId,
-            'messageChannel',
-          );
-
         const freshMessageChannel =
           pendingGroupEmailActionsProcessed || pendingFolderActionsProcessed
-            ? await messageChannelRepository.findOne({
+            ? await this.messageChannelRepository.findOne({
                 where: {
                   id: messageChannel.id,
+                  workspaceId,
                 },
-                relations: ['connectedAccount', 'messageFolders'],
+                relations: { connectedAccount: true, messageFolders: true },
               })
             : messageChannel;
 
@@ -301,7 +299,7 @@ export class MessagingMessageListFetchService {
   }
 
   private async processPendingGroupEmailActions(
-    messageChannel: MessageChannelWorkspaceEntity,
+    messageChannel: MessageChannelEntity,
     workspaceId: string,
   ): Promise<boolean> {
     const hasPendingGroupEmailAction =
@@ -327,7 +325,7 @@ export class MessagingMessageListFetchService {
   }
 
   private async processPendingFolderActions(
-    messageChannel: MessageChannelWorkspaceEntity,
+    messageChannel: MessageChannelEntity,
     workspaceId: string,
   ): Promise<boolean> {
     const foldersWithPendingActions = messageChannel.messageFolders.filter(
@@ -354,7 +352,7 @@ export class MessagingMessageListFetchService {
   }
 
   private async computeFullSyncMessageChannelMessageAssociationsToDelete(
-    messageChannel: Pick<MessageChannelWorkspaceEntity, 'id'>,
+    messageChannel: Pick<MessageChannelEntity, 'id'>,
     messageExternalIds: string[],
     workspaceId: string,
   ) {

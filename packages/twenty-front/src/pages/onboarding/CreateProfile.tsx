@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import { styled } from '@linaria/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useState } from 'react';
 import { Controller, type SubmitHandler, useForm } from 'react-hook-form';
@@ -11,33 +11,35 @@ import { SubTitle } from '@/auth/components/SubTitle';
 import { Title } from '@/auth/components/Title';
 import { currentUserState } from '@/auth/states/currentUserState';
 import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
-import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
+import { currentWorkspaceMembersState } from '@/auth/states/currentWorkspaceMembersState';
+import { CoreObjectNameSingular } from 'twenty-shared/types';
 import { useUpdateOneRecord } from '@/object-record/hooks/useUpdateOneRecord';
 import { useSetNextOnboardingStatus } from '@/onboarding/hooks/useSetNextOnboardingStatus';
 import { WorkspaceMemberPictureUploader } from '@/settings/workspace-member/components/WorkspaceMemberPictureUploader';
 import { PageFocusId } from '@/types/PageFocusId';
 import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { TextInput } from '@/ui/input/components/TextInput';
-import { Modal } from '@/ui/layout/modal/components/Modal';
+import { ModalContent } from 'twenty-ui/layout';
 import { useHotkeysOnFocusedElement } from '@/ui/utilities/hotkey/hooks/useHotkeysOnFocusedElement';
-import { ApolloError } from '@apollo/client';
+import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { i18n } from '@lingui/core';
 import { msg } from '@lingui/core/macro';
 import { Trans, useLingui } from '@lingui/react/macro';
 import { isDefined } from 'twenty-shared/utils';
 import { H2Title } from 'twenty-ui/display';
 import { MainButton } from 'twenty-ui/input';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
 
 const StyledContentContainer = styled.div`
   width: 100%;
 `;
 
 const StyledSectionContainer = styled.div`
-  margin-top: ${({ theme }) => theme.spacing(8)};
+  margin-top: ${themeCssVariables.spacing[8]};
 `;
 
 const StyledButtonContainer = styled.div`
-  margin-top: ${({ theme }) => theme.spacing(8)};
+  margin-top: ${themeCssVariables.spacing[8]};
   width: 200px;
 `;
 
@@ -45,7 +47,7 @@ const StyledComboInputContainer = styled.div`
   display: flex;
   flex-direction: row;
   > * + * {
-    margin-left: ${({ theme }) => theme.spacing(4)};
+    margin-left: ${themeCssVariables.spacing[4]};
   }
 `;
 
@@ -73,6 +75,9 @@ export const CreateProfile = () => {
     currentWorkspaceMemberState,
   );
   const setCurrentUser = useSetAtomState(currentUserState);
+  const setCurrentWorkspaceMembers = useSetAtomState(
+    currentWorkspaceMembersState,
+  );
   const { updateOneRecord } = useUpdateOneRecord();
 
   // Form
@@ -127,6 +132,20 @@ export const CreateProfile = () => {
           return current;
         });
 
+        setCurrentWorkspaceMembers((members) =>
+          members.map((member) =>
+            member.id === currentWorkspaceMember?.id
+              ? {
+                  ...member,
+                  name: {
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                  },
+                }
+              : member,
+          ),
+        );
+
         setCurrentUser((current) => {
           if (isDefined(current)) {
             return {
@@ -141,7 +160,7 @@ export const CreateProfile = () => {
         setNextOnboardingStatus();
       } catch (error: any) {
         enqueueErrorSnackBar({
-          apolloError: error instanceof ApolloError ? error : undefined,
+          apolloError: CombinedGraphQLErrors.is(error) ? error : undefined,
         });
       }
     },
@@ -150,6 +169,7 @@ export const CreateProfile = () => {
       setNextOnboardingStatus,
       enqueueErrorSnackBar,
       setCurrentWorkspaceMember,
+      setCurrentWorkspaceMembers,
       setCurrentUser,
       updateOneRecord,
     ],
@@ -171,7 +191,7 @@ export const CreateProfile = () => {
   });
 
   return (
-    <Modal.Content isVerticalCentered isHorizontalCentered>
+    <ModalContent isVerticallyCentered isHorizontallyCentered>
       <Title noMarginTop>
         <Trans>Create profile</Trans>
       </Title>
@@ -250,6 +270,6 @@ export const CreateProfile = () => {
           fullWidth
         />
       </StyledButtonContainer>
-    </Modal.Content>
+    </ModalContent>
   );
 };

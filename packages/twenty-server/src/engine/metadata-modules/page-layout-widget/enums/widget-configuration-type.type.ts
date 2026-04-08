@@ -26,6 +26,8 @@ export enum WidgetConfigurationType {
   WORKFLOW_VERSION = 'WORKFLOW_VERSION',
   WORKFLOW_RUN = 'WORKFLOW_RUN',
   FRONT_COMPONENT = 'FRONT_COMPONENT',
+  RECORD_TABLE = 'RECORD_TABLE',
+  EMAIL_THREAD = 'EMAIL_THREAD',
 }
 export type AllGraphWidgetConfigurationType =
   | WidgetConfigurationType.AGGREGATE_CHART
@@ -38,7 +40,7 @@ registerEnumType(WidgetConfigurationType, {
   name: 'WidgetConfigurationType',
 });
 
-// eslint-disable-next-line unused-imports/no-unused-vars
+// oxlint-disable-next-line unused-imports/no-unused-vars
 type Assertion = Expect<
   `${GraphType}` extends `${WidgetConfigurationType}` ? true : false
 >;

@@ -1,7 +1,12 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
-import { ConnectedAccountProvider } from 'twenty-shared/types';
+import {
+  CalendarChannelSyncStage,
+  CalendarChannelVisibility,
+  ConnectedAccountProvider,
+  MessageChannelVisibility,
+} from 'twenty-shared/types';
 
 import { CreateCalendarChannelService } from 'src/engine/core-modules/auth/services/create-calendar-channel.service';
 import { CreateConnectedAccountService } from 'src/engine/core-modules/auth/services/create-connected-account.service';
@@ -14,17 +19,16 @@ import { FeatureFlagService } from 'src/engine/core-modules/feature-flag/service
 import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
 import { getQueueToken } from 'src/engine/core-modules/message-queue/utils/get-queue-token.util';
 import { TwentyConfigService } from 'src/engine/core-modules/twenty-config/twenty-config.service';
+import { UserWorkspaceEntity } from 'src/engine/core-modules/user-workspace/user-workspace.entity';
+import { CalendarChannelEntity } from 'src/engine/metadata-modules/calendar-channel/entities/calendar-channel.entity';
+import { ConnectedAccountEntity } from 'src/engine/metadata-modules/connected-account/entities/connected-account.entity';
+import { MessageChannelEntity } from 'src/engine/metadata-modules/message-channel/entities/message-channel.entity';
 import { ObjectMetadataEntity } from 'src/engine/metadata-modules/object-metadata/object-metadata.entity';
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { CalendarChannelSyncStatusService } from 'src/modules/calendar/common/services/calendar-channel-sync-status.service';
-import {
-  CalendarChannelSyncStage,
-  CalendarChannelVisibility,
-} from 'src/modules/calendar/common/standard-objects/calendar-channel.workspace-entity';
 import { AccountsToReconnectService } from 'src/modules/connected-account/services/accounts-to-reconnect.service';
-import { type ConnectedAccountWorkspaceEntity } from 'src/modules/connected-account/standard-objects/connected-account.workspace-entity';
 import { MessageChannelSyncStatusService } from 'src/modules/messaging/common/services/message-channel-sync-status.service';
-import { MessageChannelVisibility } from 'src/modules/messaging/common/standard-objects/message-channel.workspace-entity';
+import { SyncMessageFoldersService } from 'src/modules/messaging/message-folder-manager/services/sync-message-folders.service';
 
 jest.mock('uuid', () => ({
   v4: jest.fn(() => 'mocked-uuid'),
@@ -38,28 +42,34 @@ describe('GoogleAPIsService', () => {
 
   const mockConnectedAccountRepository = {
     findOne: jest.fn(),
-    find: jest.fn(),
-    update: jest.fn(),
   };
 
-  const mockCalendarChannelRepository = {
-    findOne: jest.fn(),
-    find: jest.fn(),
-    update: jest.fn(),
+  const mockTransactionManager = {
+    getRepository: jest.fn().mockReturnValue({ save: jest.fn() }),
   };
 
   const mockMessageChannelRepository = {
-    findOne: jest.fn(),
     find: jest.fn(),
-    update: jest.fn(),
+    findOne: jest.fn().mockResolvedValue(null),
+    manager: {
+      transaction: jest.fn((callback) => callback(mockTransactionManager)),
+    },
+  };
+
+  const mockCalendarChannelRepository = {
+    find: jest.fn(),
+  };
+
+  const mockUserWorkspaceRepository = {
+    findOne: jest.fn().mockResolvedValue({ id: 'user-workspace-id' }),
   };
 
   const mockWorkspaceMemberRepository = {
     findOneOrFail: jest.fn(),
-  };
-
-  const mockWorkspaceDataSource = {
-    transaction: jest.fn((callback) => callback({})),
+    findOne: jest.fn().mockResolvedValue({
+      id: 'workspace-member-id',
+      userId: 'user-id',
+    }),
   };
 
   const mockTwentyConfigService = {
@@ -84,20 +94,11 @@ describe('GoogleAPIsService', () => {
             getRepository: jest
               .fn()
               .mockImplementation((_workspaceId, entity) => {
-                if (entity === 'connectedAccount')
-                  return mockConnectedAccountRepository;
-                if (entity === 'calendarChannel')
-                  return mockCalendarChannelRepository;
-                if (entity === 'messageChannel')
-                  return mockMessageChannelRepository;
                 if (entity === 'workspaceMember')
                   return mockWorkspaceMemberRepository;
 
                 return {};
               }),
-            getGlobalWorkspaceDataSource: jest
-              .fn()
-              .mockResolvedValue(mockWorkspaceDataSource),
             executeInWorkspaceContext: jest
               .fn()
               .mockImplementation((fn: () => any, _authContext?: any) => fn()),
@@ -188,6 +189,28 @@ describe('GoogleAPIsService', () => {
             isFeatureEnabled: jest.fn().mockResolvedValue(false),
           },
         },
+        {
+          provide: SyncMessageFoldersService,
+          useValue: {
+            syncMessageFolders: jest.fn().mockResolvedValue([]),
+          },
+        },
+        {
+          provide: getRepositoryToken(ConnectedAccountEntity),
+          useValue: mockConnectedAccountRepository,
+        },
+        {
+          provide: getRepositoryToken(UserWorkspaceEntity),
+          useValue: mockUserWorkspaceRepository,
+        },
+        {
+          provide: getRepositoryToken(MessageChannelEntity),
+          useValue: mockMessageChannelRepository,
+        },
+        {
+          provide: getRepositoryToken(CalendarChannelEntity),
+          useValue: mockCalendarChannelRepository,
+        },
       ],
     }).compile();
 
@@ -217,15 +240,15 @@ describe('GoogleAPIsService', () => {
       const existingConnectedAccount = {
         id: 'existing-account-id',
         handle: 'test@example.com',
-        accountOwnerId: 'workspace-member-id',
+        userWorkspaceId: 'user-workspace-id',
         provider: ConnectedAccountProvider.GOOGLE,
-      } as ConnectedAccountWorkspaceEntity;
+      } as ConnectedAccountEntity;
 
       mockConnectedAccountRepository.findOne.mockResolvedValue(
         existingConnectedAccount,
       );
 
-      mockWorkspaceMemberRepository.findOneOrFail.mockResolvedValue({
+      mockWorkspaceMemberRepository.findOne.mockResolvedValue({
         id: 'workspace-member-id',
         userId: 'user-id',
       });
@@ -245,6 +268,7 @@ describe('GoogleAPIsService', () => {
 
       await service.refreshGoogleRefreshToken({
         handle: 'test@example.com',
+        userId: 'user-id',
         workspaceMemberId: 'workspace-member-id',
         workspaceId: 'workspace-id',
         accessToken: 'new-access-token',
@@ -263,7 +287,7 @@ describe('GoogleAPIsService', () => {
 
       expect(
         createMessageChannelService.createMessageChannel,
-      ).not.toHaveBeenCalled();
+      ).toHaveBeenCalled();
     });
   });
 });

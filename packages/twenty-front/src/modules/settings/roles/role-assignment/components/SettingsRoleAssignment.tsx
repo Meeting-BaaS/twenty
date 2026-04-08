@@ -1,3 +1,4 @@
+import { isDefined } from 'twenty-shared/utils';
 import { currentWorkspaceMembersState } from '@/auth/states/currentWorkspaceMembersState';
 import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
 import { useUpdateAgentRole } from '@/settings/roles/hooks/useUpdateAgentRole';
@@ -16,18 +17,19 @@ import { useIsFeatureEnabled } from '@/workspace/hooks/useIsFeatureEnabled';
 import { useState } from 'react';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { SettingsPath } from 'twenty-shared/types';
+import { useQuery } from '@apollo/client/react';
 import {
-  useFindManyAgentsQuery,
-  useGetApiKeysQuery,
   type Agent,
   FeatureFlagKey,
   type ApiKeyForRole,
+  FindManyAgentsDocument,
+  GetApiKeysDocument,
 } from '~/generated-metadata/graphql';
 import { useNavigateSettings } from '~/hooks/useNavigateSettings';
 import { type PartialWorkspaceMember } from '@/settings/roles/types/RoleWithPartialMembers';
 import { ROLE_ASSIGNMENT_CONFIRMATION_MODAL_ID } from '@/settings/roles/role-assignment/constants/RoleAssignmentConfirmationModalId';
 import { ROLE_TARGET_CONFIG } from '@/settings/roles/role-assignment/constants/RoleTargetConfig';
-import { buildRoleMaps } from '@/settings/roles/role-assignment/utils/build-role-maps';
+import { buildRoleMaps } from '@/settings/roles/role-assignment/utils/buildRoleMaps';
 
 type SettingsRoleAssignmentProps = {
   roleId: string;
@@ -57,8 +59,10 @@ export const SettingsRoleAssignment = ({
   const { addApiKeyToRoleAndUpdateState, updateApiKeyRoleDraftState } =
     useUpdateApiKeyRole(roleId);
 
-  const { data: agentsData } = useFindManyAgentsQuery({ skip: !isAiEnabled });
-  const { data: apiKeysData } = useGetApiKeysQuery();
+  const { data: agentsData } = useQuery(FindManyAgentsDocument, {
+    skip: !isAiEnabled,
+  });
+  const { data: apiKeysData } = useQuery(GetApiKeysDocument);
 
   const { openModal, closeModal } = useModal();
   const [selectedRoleTarget, setSelectRoleTarget] =
@@ -194,7 +198,7 @@ export const SettingsRoleAssignment = ({
     closeModal(ROLE_ASSIGNMENT_CONFIRMATION_MODAL_ID);
   };
 
-  if (!settingsDraftRole) {
+  if (!isDefined(settingsDraftRole)) {
     return null;
   }
 

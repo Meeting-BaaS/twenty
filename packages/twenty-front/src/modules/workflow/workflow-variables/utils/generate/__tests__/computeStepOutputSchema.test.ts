@@ -1,11 +1,11 @@
-import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
+import { type EnrichedObjectMetadataItem } from '@/object-metadata/types/EnrichedObjectMetadataItem';
 import {
   computeStepOutputSchema,
   shouldComputeOutputSchemaOnFrontend,
 } from '@/workflow/workflow-variables/utils/generate/computeStepOutputSchema';
 import { FieldMetadataType } from 'twenty-shared/types';
 
-const mockCompanyObjectMetadataItem: ObjectMetadataItem = {
+const mockCompanyObjectMetadataItem: EnrichedObjectMetadataItem = {
   id: 'company-metadata-id',
   nameSingular: 'company',
   namePlural: 'companies',
@@ -22,7 +22,7 @@ const mockCompanyObjectMetadataItem: ObjectMetadataItem = {
       isSystem: false,
     },
   ],
-} as ObjectMetadataItem;
+} as EnrichedObjectMetadataItem;
 
 describe('computeStepOutputSchema', () => {
   describe('PERSISTED_OUTPUT_SCHEMA_TYPES', () => {
@@ -409,20 +409,13 @@ describe('computeStepOutputSchema', () => {
   });
 
   describe('AI_AGENT step', () => {
-    it('should return response schema', () => {
+    it('should return undefined for AI_AGENT step type', () => {
       const result = computeStepOutputSchema({
         step: { type: 'AI_AGENT', settings: {} } as any,
         objectMetadataItems: [],
       });
 
-      expect(result).toEqual({
-        response: {
-          isLeaf: true,
-          type: FieldMetadataType.TEXT,
-          label: 'Response',
-          value: null,
-        },
-      });
+      expect(result).toBeUndefined();
     });
   });
 
@@ -461,8 +454,8 @@ describe('shouldComputeOutputSchemaOnFrontend', () => {
     expect(shouldComputeOutputSchemaOnFrontend('HTTP_REQUEST')).toBe(false);
   });
 
-  it('should return true for AI_AGENT', () => {
-    expect(shouldComputeOutputSchemaOnFrontend('AI_AGENT')).toBe(true);
+  it('should return false for AI_AGENT', () => {
+    expect(shouldComputeOutputSchemaOnFrontend('AI_AGENT')).toBe(false);
   });
 
   it('should return false for WEBHOOK', () => {

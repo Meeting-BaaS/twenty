@@ -1,7 +1,7 @@
-import { RecordShowRightDrawerActionMenu } from '@/action-menu/components/RecordShowRightDrawerActionMenu';
-import { RecordShowRightDrawerOpenRecordButton } from '@/action-menu/components/RecordShowRightDrawerOpenRecordButton';
+import { RecordPageSidePanelCommandMenu } from '@/command-menu-item/components/RecordPageSidePanelCommandMenu';
+import { RecordShowSidePanelOpenRecordButton } from '@/command-menu-item/components/RecordShowSidePanelOpenRecordButton';
 import { InformationBannerDeletedRecord } from '@/information-banner/components/deleted-record/InformationBannerDeletedRecord';
-import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
+import { CoreObjectNameSingular } from 'twenty-shared/types';
 import { RecordShowContainerContextStoreTargetedRecordsEffect } from '@/object-record/record-show/components/RecordShowContainerContextStoreTargetedRecordsEffect';
 import { RecordShowEffect } from '@/object-record/record-show/components/RecordShowEffect';
 import { recordStoreFamilySelector } from '@/object-record/record-store/states/selectors/recordStoreFamilySelector';
@@ -9,10 +9,14 @@ import { PageLayoutRenderer } from '@/page-layout/components/PageLayoutRenderer'
 import { usePageLayoutIdForRecord } from '@/page-layout/hooks/usePageLayoutIdForRecord';
 import { LayoutRenderingProvider } from '@/ui/layout/contexts/LayoutRenderingContext';
 import { type TargetRecordIdentifier } from '@/ui/layout/contexts/TargetRecordIdentifier';
-import { RightDrawerFooter } from '@/ui/layout/right-drawer/components/RightDrawerFooter';
-import styled from '@emotion/styled';
+import { SidePanelFooter } from '@/ui/layout/side-panel/components/SidePanelFooter';
+import { sidePanelWidgetFooterActionsState } from '@/ui/layout/side-panel/states/sidePanelWidgetFooterActionsState';
+import { styled } from '@linaria/react';
 import { useAtomFamilySelectorValue } from '@/ui/utilities/state/jotai/hooks/useAtomFamilySelectorValue';
+import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { isDefined } from 'twenty-shared/utils';
+import { Button } from 'twenty-ui/input';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
 import { PageLayoutType } from '~/generated-metadata/graphql';
 
 const StyledShowPageBannerContainer = styled.div`
@@ -24,24 +28,22 @@ const StyledShowPageRightContainer = styled.div`
   flex-direction: column;
   height: 100%;
   justify-content: start;
-  width: 100%;
   overflow: auto;
+  width: 100%;
 `;
 
-const StyledContentContainer = styled.div<{ isInRightDrawer: boolean }>`
+const StyledContentContainer = styled.div<{ isInSidePanel: boolean }>`
+  background: ${themeCssVariables.background.primary};
   flex: 1;
   overflow-y: auto;
-  background: ${({ theme }) => theme.background.primary};
-  padding-bottom: ${({ theme, isInRightDrawer }) =>
-    isInRightDrawer ? theme.spacing(16) : 0};
 `;
 
 export const PageLayoutRecordPageRenderer = ({
   targetRecordIdentifier,
-  isInRightDrawer,
+  isInSidePanel,
 }: {
   targetRecordIdentifier: TargetRecordIdentifier;
-  isInRightDrawer: boolean;
+  isInSidePanel: boolean;
 }) => {
   const recordDeletedAt = useAtomFamilySelectorValue(
     recordStoreFamilySelector,
@@ -55,6 +57,16 @@ export const PageLayoutRecordPageRenderer = ({
     id: targetRecordIdentifier.id,
     targetObjectNameSingular: targetRecordIdentifier.targetObjectNameSingular,
   });
+
+  const sidePanelWidgetFooterActions = useAtomStateValue(
+    sidePanelWidgetFooterActionsState,
+  );
+
+  const pinnedWidgetActions = sidePanelWidgetFooterActions.filter(
+    (action) => action.isPinned !== false,
+  );
+
+  const hasPinnedWidgetActions = pinnedWidgetActions.length > 0;
 
   return (
     <>
@@ -77,7 +89,7 @@ export const PageLayoutRecordPageRenderer = ({
       )}
 
       <StyledShowPageRightContainer>
-        <StyledContentContainer isInRightDrawer={isInRightDrawer}>
+        <StyledContentContainer isInSidePanel={isInSidePanel}>
           <LayoutRenderingProvider
             value={{
               targetRecordIdentifier: {
@@ -90,7 +102,7 @@ export const PageLayoutRecordPageRenderer = ({
                 CoreObjectNameSingular.Dashboard
                   ? PageLayoutType.DASHBOARD
                   : PageLayoutType.RECORD_PAGE,
-              isInRightDrawer,
+              isInSidePanel,
             }}
           >
             {isDefined(pageLayoutId) && (
@@ -99,16 +111,33 @@ export const PageLayoutRecordPageRenderer = ({
           </LayoutRenderingProvider>
         </StyledContentContainer>
 
-        {isInRightDrawer && (
-          <RightDrawerFooter
+        {isInSidePanel && (
+          <SidePanelFooter
             actions={[
-              <RecordShowRightDrawerActionMenu />,
-              <RecordShowRightDrawerOpenRecordButton
-                objectNameSingular={
-                  targetRecordIdentifier.targetObjectNameSingular
-                }
-                recordId={targetRecordIdentifier.id}
-              />,
+              <RecordPageSidePanelCommandMenu key="options" />,
+              ...(hasPinnedWidgetActions
+                ? pinnedWidgetActions.map((action) => (
+                    <Button
+                      key={action.key}
+                      size="small"
+                      variant={action.isPrimaryCTA ? 'primary' : 'secondary'}
+                      accent={action.isPrimaryCTA ? 'blue' : 'default'}
+                      title={action.label}
+                      Icon={action.Icon}
+                      hotkeys={action.hotkeys}
+                      onClick={action.onClick}
+                      disabled={action.disabled}
+                    />
+                  ))
+                : [
+                    <RecordShowSidePanelOpenRecordButton
+                      key="open"
+                      objectNameSingular={
+                        targetRecordIdentifier.targetObjectNameSingular
+                      }
+                      recordId={targetRecordIdentifier.id}
+                    />,
+                  ]),
             ]}
           />
         )}

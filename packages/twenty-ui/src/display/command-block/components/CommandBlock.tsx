@@ -1,11 +1,11 @@
 import { type ReactElement } from 'react';
 import { styled } from '@linaria/react';
-import { themeCssVariables } from '@ui/theme';
+import { themeCssVariables } from '@ui/theme-constants';
 
 const StyledContainer = styled.div`
   border-radius: ${themeCssVariables.border.radius.sm};
   border: 1px solid ${themeCssVariables.border.color.medium};
-  background: ${themeCssVariables.background.transparent.secondary};
+  background: ${themeCssVariables.background.secondary};
   display: flex;
   justify-content: space-between;
   padding: ${themeCssVariables.spacing[3]};

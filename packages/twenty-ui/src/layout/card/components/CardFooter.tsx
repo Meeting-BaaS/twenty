@@ -1,5 +1,5 @@
 import { styled } from '@linaria/react';
-import { themeCssVariables } from '@ui/theme';
+import { themeCssVariables } from '@ui/theme-constants';
 import { type ComponentPropsWithoutRef } from 'react';
 
 const StyledCardFooter = styled.div<{ divider?: boolean }>`
@@ -21,7 +21,7 @@ export const CardFooter = ({
   ...rest
 }: CardFooterProps) => {
   return (
-    // eslint-disable-next-line react/jsx-props-no-spreading
+    // oxlint-disable-next-line react/jsx-props-no-spreading
     <StyledCardFooter className={className} divider={divider} {...rest}>
       {children}
     </StyledCardFooter>

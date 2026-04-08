@@ -1,9 +1,10 @@
+import { SettingsEmptyPlaceholder } from '@/settings/components/SettingsEmptyPlaceholder';
 import { SettingsPageContainer } from '@/settings/components/SettingsPageContainer';
 
 import { SettingsEmailingDomainVerificationRecords } from '@/settings/emailing-domains/components/SettingsEmailingDomainVerificationRecords';
 import { GET_ALL_EMAILING_DOMAINS } from '@/settings/emailing-domains/graphql/queries/getAllEmailingDomains';
 import { SubMenuTopBarContainer } from '@/ui/layout/page/components/SubMenuTopBarContainer';
-import { useQuery } from '@apollo/client';
+import { useQuery } from '@apollo/client/react';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useParams } from 'react-router-dom';
@@ -26,11 +27,15 @@ export const SettingsEmailingDomainDetail = () => {
   );
 
   if (loading) {
-    return <div>{t`Loading...`}</div>;
+    return <SettingsEmptyPlaceholder>{t`Loading...`}</SettingsEmptyPlaceholder>;
   }
 
   if (isDefined(error) || !isDefined(emailingDomain)) {
-    return <Trans>Domain not found</Trans>;
+    return (
+      <SettingsEmptyPlaceholder>
+        <Trans>Domain not found</Trans>
+      </SettingsEmptyPlaceholder>
+    );
   }
 
   return (

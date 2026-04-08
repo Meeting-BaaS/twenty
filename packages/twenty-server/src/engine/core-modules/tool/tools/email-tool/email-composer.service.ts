@@ -1,60 +1,47 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Readable } from 'stream';
-
 import { render, toPlainText } from '@react-email/render';
 import DOMPurify from 'dompurify';
 import { reactMarkupFromJSON } from 'twenty-emails';
 import { FileFolder } from 'twenty-shared/types';
-import {
-  extractFolderPathFilenameAndTypeOrThrow,
-  isDefined,
-  isValidUuid,
-} from 'twenty-shared/utils';
+import { isDefined, isValidUuid } from 'twenty-shared/utils';
 import { WorkflowAttachment } from 'twenty-shared/workflow';
 import { In, type Repository } from 'typeorm';
 import { z } from 'zod';
 
-import { FeatureFlagKey } from 'src/engine/core-modules/feature-flag/enums/feature-flag-key.enum';
-import { FeatureFlagService } from 'src/engine/core-modules/feature-flag/services/feature-flag.service';
 import { FileEntity } from 'src/engine/core-modules/file/entities/file.entity';
 import { FileService } from 'src/engine/core-modules/file/services/file.service';
 import {
   EmailToolException,
   EmailToolExceptionCode,
 } from 'src/engine/core-modules/tool/tools/email-tool/exceptions/email-tool.exception';
-import { type EmailComposerResult } from 'src/engine/core-modules/tool/tools/email-tool/types/email-composer-result.type';
-import { type EmailToolInput } from 'src/engine/core-modules/tool/tools/email-tool/types/email-tool-input.type';
+import { EmailComposerResult } from 'src/engine/core-modules/tool/tools/email-tool/types/email-composer-result.type';
+import { EmailToolInput } from 'src/engine/core-modules/tool/tools/email-tool/types/email-tool-input.type';
 import { parseCommaSeparatedEmails } from 'src/engine/core-modules/tool/tools/email-tool/utils/parse-comma-separated-emails.util';
-import { type ToolExecutionContext } from 'src/engine/core-modules/tool/types/tool.type';
+import { type ToolExecutionContext } from 'src/engine/core-modules/tool/types/tool-execution-context.type';
+import { ConnectedAccountEntity } from 'src/engine/metadata-modules/connected-account/entities/connected-account.entity';
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { buildSystemAuthContext } from 'src/engine/twenty-orm/utils/build-system-auth-context.util';
-import { type ConnectedAccountWorkspaceEntity } from 'src/modules/connected-account/standard-objects/connected-account.workspace-entity';
 import { MessagingAccountAuthenticationService } from 'src/modules/messaging/message-import-manager/services/messaging-account-authentication.service';
+import { type MessageChannelMessageAssociationWorkspaceEntity } from 'src/modules/messaging/common/standard-objects/message-channel-message-association.workspace-entity';
+import { type MessageWorkspaceEntity } from 'src/modules/messaging/common/standard-objects/message.workspace-entity';
 import { type MessageAttachment } from 'src/modules/messaging/message-import-manager/types/message';
 import { parseEmailBody } from 'src/utils/parse-email-body';
 import { streamToBuffer } from 'src/utils/stream-to-buffer';
-
 @Injectable()
 export class EmailComposerService {
   private readonly logger = new Logger(EmailComposerService.name);
 
   constructor(
     private readonly globalWorkspaceOrmManager: GlobalWorkspaceOrmManager,
+    @InjectRepository(ConnectedAccountEntity)
+    private readonly connectedAccountRepository: Repository<ConnectedAccountEntity>,
     private readonly messagingAccountAuthenticationService: MessagingAccountAuthenticationService,
     @InjectRepository(FileEntity)
     private readonly fileRepository: Repository<FileEntity>,
     private readonly fileService: FileService,
-    private readonly featureFlagService: FeatureFlagService,
   ) {}
-
-  private async isOtherFileMigrated(workspaceId: string): Promise<boolean> {
-    return this.featureFlagService.isFeatureEnabled(
-      FeatureFlagKey.IS_OTHER_FILE_MIGRATED,
-      workspaceId,
-    );
-  }
 
   private async getConnectedAccount(
     connectedAccountId: string,
@@ -71,14 +58,8 @@ export class EmailComposerService {
 
     return this.globalWorkspaceOrmManager.executeInWorkspaceContext(
       async () => {
-        const connectedAccountRepository =
-          await this.globalWorkspaceOrmManager.getRepository<ConnectedAccountWorkspaceEntity>(
-            workspaceId,
-            'connectedAccount',
-          );
-
-        const connectedAccount = await connectedAccountRepository.findOne({
-          where: { id: connectedAccountId },
+        const connectedAccount = await this.connectedAccountRepository.findOne({
+          where: { id: connectedAccountId, workspaceId },
           relations: {
             messageChannels: {
               messageFolders: true,
@@ -106,12 +87,9 @@ export class EmailComposerService {
 
     return this.globalWorkspaceOrmManager.executeInWorkspaceContext(
       async () => {
-        const connectedAccountRepository =
-          await this.globalWorkspaceOrmManager.getRepository<ConnectedAccountWorkspaceEntity>(
-            workspaceId,
-            'connectedAccount',
-          );
-        const allAccounts = await connectedAccountRepository.find();
+        const allAccounts = await this.connectedAccountRepository.find({
+          where: { workspaceId },
+        });
 
         if (!allAccounts || allAccounts.length === 0) {
           throw new EmailToolException(
@@ -215,29 +193,11 @@ export class EmailComposerService {
     const attachments: MessageAttachment[] = [];
 
     for (const fileMetadata of files) {
-      const fileEntity = fileEntityMap.get(fileMetadata.id)!;
-
-      const { folderPath, filename } = extractFolderPathFilenameAndTypeOrThrow(
-        fileEntity.path,
-      );
-
-      const isOtherFileMigrated = await this.isOtherFileMigrated(workspaceId);
-
-      let stream: Readable;
-
-      if (isOtherFileMigrated) {
-        stream = await this.fileService.getFileStreamById({
-          fileId: fileMetadata.id,
-          workspaceId,
-          fileFolder: FileFolder.Workflow,
-        });
-      } else {
-        stream = await this.fileService.getFileStream(
-          folderPath,
-          filename,
-          workspaceId,
-        );
-      }
+      const { stream } = await this.fileService.getFileStreamById({
+        fileId: fileMetadata.id,
+        workspaceId,
+        fileFolder: FileFolder.Workflow,
+      });
 
       const buffer = await streamToBuffer(stream);
 
@@ -251,12 +211,56 @@ export class EmailComposerService {
     return attachments;
   }
 
+  // Look up the provider-specific thread ID (e.g. Gmail threadId) from the
+  // parent message so replies can be explicitly threaded in the provider API.
+  private async getThreadExternalId(
+    workspaceId: string,
+    inReplyTo: string,
+    messageChannelId: string,
+  ): Promise<string | undefined> {
+    const authContext = buildSystemAuthContext(workspaceId);
+
+    return this.globalWorkspaceOrmManager.executeInWorkspaceContext(
+      async () => {
+        const messageRepository =
+          await this.globalWorkspaceOrmManager.getRepository<MessageWorkspaceEntity>(
+            workspaceId,
+            'message',
+          );
+
+        const parentMessage = await messageRepository.findOne({
+          where: { headerMessageId: inReplyTo },
+        });
+
+        if (!parentMessage) {
+          return undefined;
+        }
+
+        const associationRepository =
+          await this.globalWorkspaceOrmManager.getRepository<MessageChannelMessageAssociationWorkspaceEntity>(
+            workspaceId,
+            'messageChannelMessageAssociation',
+          );
+
+        const association = await associationRepository.findOne({
+          where: {
+            messageId: parentMessage.id,
+            messageChannelId,
+          },
+        });
+
+        return association?.messageThreadExternalId ?? undefined;
+      },
+      authContext,
+    );
+  }
+
   async composeEmail(
     parameters: EmailToolInput,
     context: ToolExecutionContext,
   ): Promise<EmailComposerResult> {
     const { workspaceId } = context;
-    const { subject, body, files } = parameters;
+    const { subject, body, files, inReplyTo } = parameters;
     let { connectedAccountId } = parameters;
 
     let recipients: { to: string[]; cc: string[]; bcc: string[] };
@@ -313,17 +317,19 @@ export class EmailComposerService {
       );
     }
 
+    const connectedAccountAsWorkspaceEntity = connectedAccount;
+
     const { accessToken, refreshToken } =
       await this.messagingAccountAuthenticationService.validateAndRefreshConnectedAccountAuthentication(
         {
-          connectedAccount,
+          connectedAccount: connectedAccountAsWorkspaceEntity,
           workspaceId,
           messageChannelId: messageChannel.id,
         },
       );
 
     const connectedAccountWithFreshTokens = {
-      ...connectedAccount,
+      ...connectedAccountAsWorkspaceEntity,
       accessToken,
       refreshToken,
     };
@@ -341,6 +347,16 @@ export class EmailComposerService {
     const sanitizedHtmlBody = purify.sanitize(htmlBody || '');
     const sanitizedSubject = purify.sanitize(subject || '');
 
+    let threadExternalId: string | undefined;
+
+    if (inReplyTo) {
+      threadExternalId = await this.getThreadExternalId(
+        workspaceId,
+        inReplyTo,
+        messageChannel.id,
+      );
+    }
+
     return {
       success: true,
       data: {
@@ -351,6 +367,9 @@ export class EmailComposerService {
         sanitizedHtmlBody,
         attachments,
         connectedAccount: connectedAccountWithFreshTokens,
+        messageChannelId: messageChannel.id,
+        inReplyTo,
+        threadExternalId,
       },
     };
   }

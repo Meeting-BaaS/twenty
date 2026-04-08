@@ -32,6 +32,7 @@ const DEFAULT_SEND_EMAIL_ACTION: WorkflowSendEmailAction = {
       subject: '',
       body: '',
       files: [],
+      inReplyTo: '',
     },
     outputSchema: {},
     errorHandlingOptions: {
@@ -52,8 +53,7 @@ const CONFIGURED_SEND_EMAIL_ACTION: WorkflowSendEmailAction = {
   valid: true,
   settings: {
     input: {
-      connectedAccountId: mockedConnectedAccountRecords[0]
-        .accountOwnerId as string,
+      connectedAccountId: mockedConnectedAccountRecords[0].id as string,
       recipients: {
         to: 'test@twenty.com',
         cc: '',
@@ -62,6 +62,7 @@ const CONFIGURED_SEND_EMAIL_ACTION: WorkflowSendEmailAction = {
       subject: 'Welcome to Twenty!',
       body: 'Dear Tim,\n\nWelcome to Twenty! We are excited to have you on board.\n\nBest regards,\nThe Team',
       files: [],
+      inReplyTo: '',
     },
     outputSchema: {},
     errorHandlingOptions: {
@@ -91,6 +92,7 @@ const DEFAULT_DRAFT_EMAIL_ACTION: WorkflowDraftEmailAction = {
       subject: '',
       body: '',
       files: [],
+      inReplyTo: '',
     },
     outputSchema: {},
     errorHandlingOptions: {

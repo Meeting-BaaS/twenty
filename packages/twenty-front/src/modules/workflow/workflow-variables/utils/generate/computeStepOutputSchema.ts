@@ -1,4 +1,4 @@
-import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
+import { type EnrichedObjectMetadataItem } from '@/object-metadata/types/EnrichedObjectMetadataItem';
 import {
   type WorkflowAction,
   type WorkflowTrigger,
@@ -14,6 +14,7 @@ import { isDefined } from 'twenty-shared/utils';
 import { DatabaseEventAction } from '~/generated-metadata/graphql';
 
 const PERSISTED_OUTPUT_SCHEMA_TYPES = [
+  'AI_AGENT',
   'CODE',
   'HTTP_REQUEST',
   'WEBHOOK',
@@ -21,9 +22,9 @@ const PERSISTED_OUTPUT_SCHEMA_TYPES = [
 ];
 
 const findObjectMetadataItemByName = (
-  objectMetadataItems: ObjectMetadataItem[],
+  objectMetadataItems: EnrichedObjectMetadataItem[],
   objectName: string,
-): ObjectMetadataItem | undefined => {
+): EnrichedObjectMetadataItem | undefined => {
   return objectMetadataItems.find((item) => item.nameSingular === objectName);
 };
 
@@ -57,7 +58,7 @@ export const computeStepOutputSchema = ({
   objectMetadataItems,
 }: {
   step: WorkflowTrigger | WorkflowAction;
-  objectMetadataItems: ObjectMetadataItem[];
+  objectMetadataItems: EnrichedObjectMetadataItem[];
 }): OutputSchemaV2 | undefined => {
   const stepType = step.type;
 
@@ -188,17 +189,6 @@ export const computeStepOutputSchema = ({
       }
 
       return generateFormOutputSchema(formFields, objectMetadataItems);
-    }
-
-    case 'AI_AGENT': {
-      return {
-        response: {
-          isLeaf: true,
-          type: FieldMetadataType.TEXT,
-          label: 'Response',
-          value: null,
-        },
-      };
     }
 
     case 'SEND_EMAIL':

@@ -1,7 +1,6 @@
 import { t } from '@lingui/core/macro';
-import styled from '@emotion/styled';
 
-import { type ObjectMetadataItem } from '@/object-metadata/types/ObjectMetadataItem';
+import { type EnrichedObjectMetadataItem } from '@/object-metadata/types/EnrichedObjectMetadataItem';
 import { getAvatarType } from '@/object-metadata/utils/getAvatarType';
 import { MultipleRecordPickerComponentInstanceContext } from '@/object-record/record-picker/multiple-record-picker/states/contexts/MultipleRecordPickerComponentInstanceContext';
 import { multipleRecordPickerIsSelectedComponentFamilySelector } from '@/object-record/record-picker/multiple-record-picker/states/selectors/multipleRecordPickerIsSelectedComponentFamilySelector';
@@ -20,14 +19,9 @@ import { MenuItemMultiSelectAvatar } from 'twenty-ui/navigation';
 import { multipleRecordPickerSearchableObjectMetadataItemsComponentState } from '@/object-record/record-picker/multiple-record-picker/states/multipleRecordPickerSearchableObjectMetadataItemsComponentState';
 import { type SearchRecord } from '~/generated/graphql';
 
-export const StyledSelectableItem = styled(SelectableListItem)`
-  height: 100%;
-  width: 100%;
-`;
-
 type MultipleRecordPickerMenuItemContentProps = {
   searchRecord: SearchRecord;
-  objectMetadataItem: ObjectMetadataItem;
+  objectMetadataItem: EnrichedObjectMetadataItem;
   onChange: (morphItem: RecordPickerPickableMorphItem) => void;
 };
 
@@ -78,7 +72,7 @@ export const MultipleRecordPickerMenuItemContent = ({
     multipleRecordPickerSearchableObjectMetadataItems.length > 1;
 
   return (
-    <StyledSelectableItem
+    <SelectableListItem
       itemId={searchRecord.recordId}
       key={searchRecord.recordId}
       onEnter={() => handleSelectChange(!isRecordSelectedWithObjectItem)}
@@ -103,6 +97,6 @@ export const MultipleRecordPickerMenuItemContent = ({
             : undefined
         }
       />
-    </StyledSelectableItem>
+    </SelectableListItem>
   );
 };

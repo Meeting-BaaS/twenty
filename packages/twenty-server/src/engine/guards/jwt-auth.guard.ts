@@ -8,8 +8,8 @@ import {
 import { isDefined } from 'twenty-shared/utils';
 
 import { AccessTokenService } from 'src/engine/core-modules/auth/token/services/access-token.service';
-import { WorkspaceCacheStorageService } from 'src/engine/workspace-cache-storage/workspace-cache-storage.service';
 import { bindDataToRequestObject } from 'src/engine/utils/bind-data-to-request-object.util';
+import { WorkspaceCacheStorageService } from 'src/engine/workspace-cache-storage/workspace-cache-storage.service';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -48,7 +48,10 @@ export class JwtAuthGuard implements CanActivate {
 
       return true;
     } catch (error) {
-      this.logger.warn(`Auth failed with error: ${error}`);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.warn(`Auth failed: ${errorMessage}`);
 
       return false;
     }

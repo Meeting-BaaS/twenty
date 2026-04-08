@@ -2,7 +2,6 @@
 import chalk from 'chalk';
 import { Command, CommanderError } from 'commander';
 import { CreateAppCommand } from '@/create-app.command';
-import { type ScaffoldingMode } from '@/types/scaffolding-options';
 import packageJson from '../package.json';
 
 const program = new Command(packageJson.name)
@@ -13,40 +12,32 @@ const program = new Command(packageJson.name)
     'Output the current version of create-twenty-app.',
   )
   .argument('[directory]')
-  .option('-e, --exhaustive', 'Create all example entities (default)')
+  .option('--example <name>', 'Initialize from an example')
+  .option('-n, --name <name>', 'Application name (skips prompt)')
   .option(
-    '-m, --minimal',
-    'Create only core entities (application-config and default-role)',
+    '-d, --display-name <displayName>',
+    'Application display name (skips prompt)',
   )
   .option(
-    '-i, --interactive',
-    'Interactively choose which entity examples to include',
+    '--description <description>',
+    'Application description (skips prompt)',
+  )
+  .option(
+    '--skip-local-instance',
+    'Skip the local Twenty instance setup prompt',
   )
   .helpOption('-h, --help', 'Display this help message.')
   .action(
     async (
       directory?: string,
       options?: {
-        exhaustive?: boolean;
-        minimal?: boolean;
-        interactive?: boolean;
+        example?: string;
+        name?: string;
+        displayName?: string;
+        description?: string;
+        skipLocalInstance?: boolean;
       },
     ) => {
-      const modeFlags = [
-        options?.exhaustive,
-        options?.minimal,
-        options?.interactive,
-      ].filter(Boolean);
-
-      if (modeFlags.length > 1) {
-        console.error(
-          chalk.red(
-            'Error: --exhaustive, --minimal, and --interactive are mutually exclusive.',
-          ),
-        );
-        process.exit(1);
-      }
-
       if (directory && !/^[a-z0-9-]+$/.test(directory)) {
         console.error(
           chalk.red(
@@ -56,13 +47,19 @@ const program = new Command(packageJson.name)
         process.exit(1);
       }
 
-      const mode: ScaffoldingMode = options?.minimal
-        ? 'minimal'
-        : options?.interactive
-          ? 'interactive'
-          : 'exhaustive';
+      if (options?.name !== undefined && options.name.trim().length === 0) {
+        console.error(chalk.red('Error: --name cannot be empty.'));
+        process.exit(1);
+      }
 
-      await new CreateAppCommand().execute(directory, mode);
+      await new CreateAppCommand().execute({
+        directory,
+        example: options?.example,
+        name: options?.name,
+        displayName: options?.displayName,
+        description: options?.description,
+        skipLocalInstance: options?.skipLocalInstance,
+      });
     },
   );
 

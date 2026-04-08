@@ -1,5 +1,5 @@
-import { getOperationName } from '@apollo/client/utilities';
-import styled from '@emotion/styled';
+import { getOperationName } from '~/utils/getOperationName';
+import { styled } from '@linaria/react';
 import { useLingui } from '@lingui/react/macro';
 import { useState } from 'react';
 import { v4 } from 'uuid';
@@ -13,17 +13,19 @@ import { isDefined } from 'twenty-shared/utils';
 import { H2Title, IconPlus } from 'twenty-ui/display';
 import { Button } from 'twenty-ui/input';
 import { Section } from 'twenty-ui/layout';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
+import { useMutation, useQuery } from '@apollo/client/react';
 import {
-  useAssignRoleToAgentMutation,
-  useCreateOneRoleMutation,
-  useGetRolesQuery,
+  AssignRoleToAgentDocument,
+  CreateOneRoleDocument,
+  GetRolesDocument,
 } from '~/generated-metadata/graphql';
 import { type SettingsAIAgentFormValues } from '~/pages/settings/ai/hooks/useSettingsAgentFormState';
 
 const StyledWarningText = styled.div`
-  color: ${({ theme }) => theme.font.color.tertiary};
-  font-size: ${({ theme }) => theme.font.size.sm};
-  margin-bottom: ${({ theme }) => theme.spacing(4)};
+  color: ${themeCssVariables.font.color.tertiary};
+  font-size: ${themeCssVariables.font.size.sm};
+  margin-bottom: ${themeCssVariables.spacing[4]};
 `;
 
 type SettingsAgentRoleTabProps = {
@@ -47,9 +49,9 @@ export const SettingsAgentRoleTab = ({
   const { t } = useLingui();
   const [isCreatingRole, setIsCreatingRole] = useState(false);
 
-  const { data: rolesData } = useGetRolesQuery();
-  const [createRole] = useCreateOneRoleMutation();
-  const [assignRoleToAgent] = useAssignRoleToAgentMutation();
+  const { data: rolesData } = useQuery(GetRolesDocument);
+  const [createRole] = useMutation(CreateOneRoleDocument);
+  const [assignRoleToAgent] = useMutation(AssignRoleToAgentDocument);
   const setSettingsDraftRole = useSetAtomFamilyState(
     settingsDraftRoleFamilyState,
     formValues.role || '',

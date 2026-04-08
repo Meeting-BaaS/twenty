@@ -1,9 +1,11 @@
 import { styled } from '@linaria/react';
 import Editor, { type EditorProps, type Monaco } from '@monaco-editor/react';
 import { Loader } from '@ui/feedback/loader/components/Loader';
+import { ResizeHandle } from '@ui/layout/resize-handle/components/ResizeHandle';
 import { BASE_CODE_EDITOR_THEME_ID } from '@ui/input/code-editor/constants/BaseCodeEditorThemeId';
+import { useResizeHandle } from '@ui/layout/resize-handle/hooks/useResizeHandle';
 import { getBaseCodeEditorTheme } from '@ui/input/code-editor/theme/utils/getBaseCodeEditorTheme';
-import { ThemeContext, themeCssVariables } from '@ui/theme';
+import { ThemeContext, themeCssVariables } from '@ui/theme-constants';
 import { type editor } from 'monaco-editor';
 import { type KeyboardEvent, useContext, useState } from 'react';
 import { isDefined } from 'twenty-shared/utils';
@@ -19,6 +21,7 @@ type CodeEditorProps = Pick<
   variant?: CodeEditorVariant;
   isLoading?: boolean;
   transparentBackground?: boolean;
+  resizable?: boolean;
 };
 
 const StyledEditorLoader = styled.div<{
@@ -117,6 +120,7 @@ export const CodeEditor = ({
   transparentBackground,
   isLoading = false,
   options,
+  resizable = false,
 }: CodeEditorProps) => {
   const { theme } = useContext(ThemeContext);
   const [monaco, setMonaco] = useState<Monaco | undefined>(undefined);
@@ -124,6 +128,18 @@ export const CodeEditor = ({
     editor.IStandaloneCodeEditor | undefined
   >(undefined);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
+
+  const numericHeight = typeof height === 'number' ? height : 450;
+  const {
+    size: resizableHeight,
+    handleResizeStart,
+    handleResizeMove,
+    handleResizeEnd,
+  } = useResizeHandle({
+    initialSize: numericHeight,
+  });
+
+  const currentHeight = resizable ? resizableHeight : height;
 
   const setModelMarkers = (
     editor: editor.IStandaloneCodeEditor | undefined,
@@ -146,7 +162,7 @@ export const CodeEditor = ({
   };
 
   return isLoading ? (
-    <StyledEditorLoader height={height} variant={variant}>
+    <StyledEditorLoader height={currentHeight} variant={variant}>
       <Loader />
     </StyledEditorLoader>
   ) : (
@@ -162,7 +178,7 @@ export const CodeEditor = ({
         transparentBackground={transparentBackground}
       >
         <Editor
-          height={height}
+          height={currentHeight}
           value={value}
           language={language}
           loading=""
@@ -172,9 +188,7 @@ export const CodeEditor = ({
 
             monaco.editor.defineTheme(
               BASE_CODE_EDITOR_THEME_ID,
-              getBaseCodeEditorTheme({
-                theme,
-              }),
+              getBaseCodeEditorTheme(theme),
             );
             monaco.editor.setTheme(BASE_CODE_EDITOR_THEME_ID);
 
@@ -212,6 +226,13 @@ export const CodeEditor = ({
           }}
         />
       </StyledEditorWrapper>
+      {resizable && (
+        <ResizeHandle
+          onPointerDown={handleResizeStart}
+          onPointerMove={handleResizeMove}
+          onPointerUp={handleResizeEnd}
+        />
+      )}
     </StyledCodeEditorContainer>
   );
 };

@@ -1,6 +1,6 @@
 import { useAuth } from '@/auth/hooks/useAuth';
 import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
-import { ApolloError } from '@apollo/client';
+import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { AppPath } from 'twenty-shared/types';
 
 import { verifyEmailRedirectPathState } from '@/app/states/verifyEmailRedirectPathState';
@@ -8,7 +8,7 @@ import { useVerifyLogin } from '@/auth/hooks/useVerifyLogin';
 import { clientConfigApiStatusState } from '@/client-config/states/clientConfigApiStatusState';
 import { useIsCurrentLocationOnAWorkspace } from '@/domain-manager/hooks/useIsCurrentLocationOnAWorkspace';
 import { useRedirectToWorkspaceDomain } from '@/domain-manager/hooks/useRedirectToWorkspaceDomain';
-import { Modal } from '@/ui/layout/modal/components/Modal';
+import { ModalContent } from 'twenty-ui/layout';
 import { useLingui } from '@lingui/react/macro';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -95,7 +95,7 @@ export const VerifyEmailEffect = () => {
         await verifyLoginToken(loginToken.token);
       } catch (error) {
         enqueueErrorSnackBar({
-          ...(error instanceof ApolloError
+          ...(CombinedGraphQLErrors.is(error)
             ? { apolloError: error }
             : { message: t`Email verification failed` }),
           options: {
@@ -103,9 +103,8 @@ export const VerifyEmailEffect = () => {
           },
         });
         if (
-          error instanceof ApolloError &&
-          error.graphQLErrors[0].extensions?.subCode ===
-            'EMAIL_ALREADY_VERIFIED'
+          CombinedGraphQLErrors.is(error) &&
+          error.errors[0].extensions?.subCode === 'EMAIL_ALREADY_VERIFIED'
         ) {
           navigate(AppPath.SignInUp);
         }
@@ -121,14 +120,14 @@ export const VerifyEmailEffect = () => {
     verifyEmailToken();
 
     // Verify email only needs to run once at mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [clientConfigApiStatus.isLoadedOnce]);
 
   if (isError) {
     return (
-      <Modal.Content isVerticalCentered isHorizontalCentered>
+      <ModalContent isVerticallyCentered isHorizontallyCentered>
         <EmailVerificationSent email={email} isError={true} />
-      </Modal.Content>
+      </ModalContent>
     );
   }
 

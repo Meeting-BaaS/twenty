@@ -1,5 +1,5 @@
 import { isNonEmptyString, isString } from '@sniptt/guards';
-import { useContext, type ReactNode } from 'react';
+import { type ReactNode, useContext } from 'react';
 
 import { styled } from '@linaria/react';
 import {
@@ -7,7 +7,7 @@ import {
   IconGripVertical,
   OverflowingTextWithTooltip,
 } from '@ui/display';
-import { ThemeContext } from '@ui/theme';
+import { ThemeContext, themeCssVariables } from '@ui/theme-constants';
 import { type MenuItemDraggableGripMode } from '../../types/MenuItemDraggableGripMode';
 import { MenuItemIcon } from './MenuItemIcon';
 import { MenuItemIconBoxContainer } from './MenuItemIconBoxContainer';
@@ -28,7 +28,13 @@ const StyledMainText = styled.div`
   max-width: 100%;
 `;
 
-const StyledMenuItemLabelRight = styled(StyledMenuItemLabel)`
+const StyledMenuItemLabelRight = styled.div`
+  display: flex;
+  flex-direction: row;
+  font-size: ${themeCssVariables.font.size.md};
+  font-weight: ${themeCssVariables.font.weight.regular};
+  overflow: hidden;
+  white-space: nowrap;
   margin-left: auto;
 `;
 
@@ -37,6 +43,7 @@ type MenuItemLeftContentProps = {
   LeftComponent?: ReactNode;
   LeftIcon: IconComponent | null | undefined;
   withIconContainer?: boolean;
+  withIconContainerBackground?: boolean;
   gripMode?: MenuItemDraggableGripMode;
   disabled?: boolean;
   text: ReactNode;
@@ -49,6 +56,7 @@ export const MenuItemLeftContent = ({
   LeftComponent,
   LeftIcon,
   withIconContainer = false,
+  withIconContainerBackground = true,
   text,
   contextualText,
   contextualTextPosition = 'left',
@@ -58,16 +66,16 @@ export const MenuItemLeftContent = ({
   const { theme } = useContext(ThemeContext);
 
   const gripIconColor = withIconContainer
-    ? theme.font.color.tertiary
+    ? themeCssVariables.font.color.tertiary
     : disabled
-      ? theme.font.color.extraLight
-      : theme.font.color.light;
+      ? themeCssVariables.font.color.extraLight
+      : themeCssVariables.font.color.light;
 
   return (
     <StyledMenuItemLeftContent className={className}>
       {gripMode === 'always' &&
         (withIconContainer ? (
-          <MenuItemIconBoxContainer>
+          <MenuItemIconBoxContainer hasBackground={withIconContainerBackground}>
             <StyledDraggableItem>
               <IconGripVertical
                 size={theme.icon.size.md}
@@ -92,7 +100,11 @@ export const MenuItemLeftContent = ({
           gripIconColor={gripIconColor}
         />
       ) : (
-        <MenuItemIcon Icon={LeftIcon} withContainer={withIconContainer} />
+        <MenuItemIcon
+          Icon={LeftIcon}
+          withContainer={withIconContainer}
+          withContainerBackground={withIconContainerBackground}
+        />
       )}
       {LeftComponent}
       <StyledMenuItemLabel>
@@ -108,7 +120,10 @@ export const MenuItemLeftContent = ({
             {isString(contextualText)
               ? isNonEmptyString(contextualText) && (
                   <StyledMenuItemContextualText>
-                    <OverflowingTextWithTooltip text={`· ${contextualText}`} />
+                    <OverflowingTextWithTooltip
+                      text={`· ${contextualText}`}
+                      tooltipContent={contextualText}
+                    />
                   </StyledMenuItemContextualText>
                 )
               : contextualText}

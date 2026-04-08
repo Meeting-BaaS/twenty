@@ -6,7 +6,8 @@ module.exports = {
     '/graphql',
   documents: [
     './src/modules/workflow/**/graphql/**/*.{ts,tsx}',
-    './src/modules/activities/emails/graphql/**/*.{ts,tsx}',
+    './src/modules/activities/emails/graphql/queries/**/*.{ts,tsx}',
+    './src/modules/activities/emails/graphql/operation-signatures/**/*.{ts,tsx}',
     './src/modules/activities/calendar/graphql/**/*.{ts,tsx}',
     './src/modules/search/graphql/**/*.{ts,tsx}',
     './src/modules/command-menu/graphql/**/*.{ts,tsx}',
@@ -21,13 +22,10 @@ module.exports = {
       plugins: [
         'typescript',
         'typescript-operations',
-        'typescript-react-apollo',
+        'typed-document-node',
       ],
       config: {
         skipTypename: false,
-        withHooks: true,
-        withHOC: false,
-        withComponent: false,
         scalars: {
           DateTime: 'string',
         },

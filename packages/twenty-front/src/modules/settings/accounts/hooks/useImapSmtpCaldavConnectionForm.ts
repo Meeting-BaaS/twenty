@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
@@ -8,9 +8,10 @@ import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 
 import { t } from '@lingui/core/macro';
 import { SettingsPath } from 'twenty-shared/types';
+import { useMutation } from '@apollo/client/react';
 import {
   type ConnectionParameters,
-  useSaveImapSmtpCaldavAccountMutation,
+  SaveImapSmtpCaldavAccountDocument,
 } from '~/generated-metadata/graphql';
 import { useNavigateSettings } from '~/hooks/useNavigateSettings';
 
@@ -20,12 +21,9 @@ import {
   connectionImapSmtpCalDav,
   isProtocolConfigured,
 } from '@/settings/accounts/validation-schemas/connectionImapSmtpCalDav';
-import { ApolloError } from '@apollo/client';
+import { CombinedGraphQLErrors } from '@apollo/client/errors';
 import { isDefined } from 'twenty-shared/utils';
-import {
-  type ConnectedImapSmtpCaldavAccount,
-  useConnectedImapSmtpCaldavAccount,
-} from './useConnectedImapSmtpCaldavAccount';
+import { useConnectedImapSmtpCaldavAccount } from './useConnectedImapSmtpCaldavAccount';
 
 type UseConnectionFormProps = {
   isEditing?: boolean;
@@ -43,20 +41,18 @@ export const useImapSmtpCaldavConnectionForm = ({
   const navigate = useNavigateSettings();
   const currentWorkspaceMember = useAtomStateValue(currentWorkspaceMemberState);
 
+  const defaultProtocolValues: Record<string, ConnectionParameters> = {
+    IMAP: { host: '', port: 993, password: '', secure: true },
+    SMTP: { host: '', username: '', port: 587, password: '', secure: true },
+    CALDAV: { host: '', port: 443, password: '', secure: true },
+  };
+
   const formMethods = useForm<ConnectionFormData>({
     mode: 'onSubmit',
     resolver: zodResolver(connectionImapSmtpCalDav),
     defaultValues: {
       handle: '',
-      IMAP: { host: '', port: 993, password: '', secure: true },
-      SMTP: { host: '', username: '', port: 587, password: '', secure: true },
-      CALDAV: {
-        host: '',
-        port: 443,
-        password: '',
-        secure: true,
-        username: undefined,
-      },
+      ...defaultProtocolValues,
     },
   });
 
@@ -67,23 +63,31 @@ export const useImapSmtpCaldavConnectionForm = ({
   const { connectedAccount, loading: accountLoading } =
     useConnectedImapSmtpCaldavAccount(
       isEditing ? connectedAccountId : undefined,
-      useCallback(
-        (account: ConnectedImapSmtpCaldavAccount | null) => {
-          if (isDefined(account)) {
-            reset({
-              handle: account.handle || '',
-              IMAP: account.connectionParameters?.IMAP || undefined,
-              SMTP: account.connectionParameters?.SMTP || undefined,
-              CALDAV: account.connectionParameters?.CALDAV || undefined,
-            });
-          }
-        },
-        [reset],
-      ),
     );
 
-  const [saveConnection, { loading: saveLoading }] =
-    useSaveImapSmtpCaldavAccountMutation();
+  useEffect(() => {
+    if (isDefined(connectedAccount)) {
+      reset({
+        handle: connectedAccount.handle || '',
+        IMAP: {
+          ...defaultProtocolValues.IMAP,
+          ...connectedAccount.connectionParameters?.IMAP,
+        },
+        SMTP: {
+          ...defaultProtocolValues.SMTP,
+          ...connectedAccount.connectionParameters?.SMTP,
+        },
+        CALDAV: {
+          ...defaultProtocolValues.CALDAV,
+          ...connectedAccount.connectionParameters?.CALDAV,
+        },
+      });
+    }
+  }, [connectedAccount, reset]);
+
+  const [saveConnection, { loading: saveLoading }] = useMutation(
+    SaveImapSmtpCaldavAccountDocument,
+  );
 
   const watchedValues = watch();
 
@@ -151,14 +155,14 @@ export const useImapSmtpCaldavConnectionForm = ({
         enqueueSuccessSnackBar({ message: successMessage });
 
         const { connectedAccountId: returnedConnectedAccountId } =
-          data?.saveImapSmtpCaldavAccount || {};
+          data?.saveImapSmtpCaldavAccount ?? {};
 
         navigate(SettingsPath.AccountsConfiguration, {
           connectedAccountId: returnedConnectedAccountId,
         });
       } catch (error) {
         enqueueErrorSnackBar({
-          apolloError: error instanceof ApolloError ? error : undefined,
+          apolloError: CombinedGraphQLErrors.is(error) ? error : undefined,
         });
       }
     },

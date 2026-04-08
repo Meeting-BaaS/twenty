@@ -1,6 +1,6 @@
 import { styled } from '@linaria/react';
 import { type IconComponent } from '@ui/display';
-import { ThemeContext, themeCssVariables } from '@ui/theme';
+import { ThemeContext, themeCssVariables } from '@ui/theme-constants';
 import { useContext } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -114,6 +114,7 @@ export const FloatingButton = ({
   to,
 }: FloatingButtonProps) => {
   const { theme } = useContext(ThemeContext);
+
   return (
     <StyledButton
       disabled={disabled}

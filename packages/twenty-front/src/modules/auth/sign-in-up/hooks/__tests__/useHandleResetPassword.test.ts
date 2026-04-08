@@ -9,15 +9,13 @@ import { workspacePublicDataState } from '@/auth/states/workspacePublicDataState
 import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { jotaiStore } from '@/ui/utilities/state/jotai/jotaiStore';
 import { SOURCE_LOCALE } from 'twenty-shared/translations';
-import {
-  type PublicWorkspaceData,
-  useEmailPasswordResetLinkMutation,
-} from '~/generated-metadata/graphql';
+import { useMutation } from '@apollo/client/react';
+import { type PublicWorkspaceData } from '~/generated-metadata/graphql';
 import { dynamicActivate } from '~/utils/i18n/dynamicActivate';
 
 // Mocks
 jest.mock('@/ui/feedback/snack-bar-manager/hooks/useSnackBar');
-jest.mock('~/generated-metadata/graphql');
+jest.mock('@apollo/client/react');
 
 dynamicActivate(SOURCE_LOCALE);
 
@@ -25,6 +23,20 @@ const renderHooks = () => {
   jotaiStore.set(workspacePublicDataState.atom, {
     id: 'workspace-id',
   } as PublicWorkspaceData);
+
+  const { result } = renderHook(() => useHandleResetPassword(), {
+    wrapper: ({ children }: { children: ReactNode }) =>
+      createElement(
+        JotaiProvider,
+        { store: jotaiStore },
+        createElement(I18nProvider, { i18n }, children),
+      ),
+  });
+  return { result };
+};
+
+const renderHooksWithoutWorkspace = () => {
+  jotaiStore.set(workspacePublicDataState.atom, null);
 
   const { result } = renderHook(() => useHandleResetPassword(), {
     wrapper: ({ children }: { children: ReactNode }) =>
@@ -49,7 +61,7 @@ describe('useHandleResetPassword', () => {
       enqueueErrorSnackBar: enqueueErrorSnackBarMock,
       enqueueSuccessSnackBar: enqueueSuccessSnackBarMock,
     });
-    (useEmailPasswordResetLinkMutation as jest.Mock).mockReturnValue([
+    (useMutation as unknown as jest.Mock).mockReturnValue([
       emailPasswordResetLinkMock,
     ]);
   });
@@ -71,6 +83,25 @@ describe('useHandleResetPassword', () => {
     const { result } = renderHooks();
     await act(() => result.current.handleResetPassword('test@example.com')());
 
+    expect(emailPasswordResetLinkMock).toHaveBeenCalledWith({
+      variables: { email: 'test@example.com', workspaceId: 'workspace-id' },
+    });
+    expect(enqueueSuccessSnackBarMock).toHaveBeenCalledWith({
+      message: 'Password reset link has been sent to the email',
+    });
+  });
+
+  it('should send reset link without workspaceId if workspace context is missing', async () => {
+    emailPasswordResetLinkMock.mockResolvedValue({
+      data: { emailPasswordResetLink: { success: true } },
+    });
+
+    const { result } = renderHooksWithoutWorkspace();
+    await act(() => result.current.handleResetPassword('test@example.com')());
+
+    expect(emailPasswordResetLinkMock).toHaveBeenCalledWith({
+      variables: { email: 'test@example.com' },
+    });
     expect(enqueueSuccessSnackBarMock).toHaveBeenCalledWith({
       message: 'Password reset link has been sent to the email',
     });
@@ -94,6 +125,8 @@ describe('useHandleResetPassword', () => {
     const { result } = renderHooks();
     await act(() => result.current.handleResetPassword('test@example.com')());
 
-    expect(enqueueErrorSnackBarMock).toHaveBeenCalledWith({});
+    expect(enqueueErrorSnackBarMock).toHaveBeenCalledWith({
+      message: errorMessage,
+    });
   });
 });

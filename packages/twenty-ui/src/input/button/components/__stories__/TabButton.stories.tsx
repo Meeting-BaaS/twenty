@@ -1,4 +1,4 @@
-/* eslint-disable react/jsx-props-no-spreading */
+/* oxlint-disable react/jsx-props-no-spreading */
 import { styled } from '@linaria/react';
 import { type Meta, type StoryObj } from '@storybook/react-vite';
 import {
@@ -17,7 +17,7 @@ import {
   JotaiRootDecorator,
 } from '@ui/testing';
 import { type ReactNode } from 'react';
-import { themeCssVariables } from '@ui/theme';
+import { themeCssVariables } from '@ui/theme-constants';
 
 const StyledTabContainer = styled.div`
   display: flex;

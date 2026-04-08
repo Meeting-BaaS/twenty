@@ -3,6 +3,7 @@ import type { Manifest } from 'twenty-shared/application';
 import { PermissionFlagType } from 'twenty-shared/constants';
 import {
   FieldMetadataType,
+  NavigationMenuItemType,
   RelationOnDeleteAction,
   RelationType,
   ViewType,
@@ -19,6 +20,7 @@ export const EXPECTED_MANIFEST: Manifest = {
     },
   ],
   skills: [],
+  agents: [],
   application: {
     applicationVariables: {
       DEFAULT_RECIPIENT_NAME: {
@@ -47,7 +49,6 @@ export const EXPECTED_MANIFEST: Manifest = {
     universalIdentifier: '4ec0391d-18d5-411c-b2f3-266ddc1c3ef7',
     yarnLockChecksum: 'd41d8cd98f00b204e9800998ecf8427e',
     packageJsonChecksum: '2851d0e2c3621a57e1fd103a245b6fde',
-    apiClientChecksum: null,
   },
   frontComponents: [
     {
@@ -59,6 +60,7 @@ export const EXPECTED_MANIFEST: Manifest = {
       sourceComponentPath: 'src/root.front-component.tsx',
       universalIdentifier: 'a0a1a2a3-a4a5-4000-8000-000000000001',
       isHeadless: false,
+      usesSdkClient: false,
     },
     {
       builtComponentPath: 'src/components/card.front-component.mjs',
@@ -69,6 +71,7 @@ export const EXPECTED_MANIFEST: Manifest = {
       sourceComponentPath: 'src/components/card.front-component.tsx',
       universalIdentifier: '88c15ae2-5f87-4a6b-b48f-1974bbe62eb7',
       isHeadless: false,
+      usesSdkClient: false,
     },
     {
       builtComponentPath: 'src/components/greeting.front-component.mjs',
@@ -79,6 +82,7 @@ export const EXPECTED_MANIFEST: Manifest = {
       sourceComponentPath: 'src/components/greeting.front-component.tsx',
       universalIdentifier: '370ae182-743f-4ecb-b625-7ac48e21f0e5',
       isHeadless: false,
+      usesSdkClient: false,
     },
     {
       builtComponentPath: 'src/components/test.front-component.mjs',
@@ -89,6 +93,7 @@ export const EXPECTED_MANIFEST: Manifest = {
       sourceComponentPath: 'src/components/test.front-component.tsx',
       universalIdentifier: 'f1234567-abcd-4000-8000-000000000001',
       isHeadless: false,
+      usesSdkClient: false,
     },
   ],
 
@@ -246,28 +251,35 @@ export const EXPECTED_MANIFEST: Manifest = {
       options: [
         {
           color: 'blue',
-          id: 'c1d2e3f4-0001-4000-8000-000000000001',
+          id: 'cd751c81-787d-4581-bc51-efe43f0050a7',
           label: 'Personal',
           position: 0,
           value: 'PERSONAL',
         },
         {
           color: 'green',
-          id: 'c1d2e3f4-0002-4000-8000-000000000002',
+          id: 'eec437ca-5beb-41a9-a826-c9a5eca2eef4',
           label: 'Business',
           position: 1,
           value: 'BUSINESS',
         },
         {
           color: 'orange',
-          id: 'c1d2e3f4-0003-4000-8000-000000000003',
+          id: 'a5baa37d-1047-4972-b6b8-7faae0e3eac1',
           label: 'Promotional',
           position: 2,
           value: 'PROMOTIONAL',
         },
+        {
+          color: 'gray',
+          id: '877336e4-6591-599f-8cd1-4c7dfae623d7',
+          label: 'Other',
+          position: 3,
+          value: 'OTHER',
+        },
       ],
       type: FieldType.SELECT,
-      universalIdentifier: '8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e',
+      universalIdentifier: 'b602dbd9-e511-49ce-b6d3-b697218dc69c',
     },
     {
       objectUniversalIdentifier: '54b589ca-eeed-4950-a176-358418b85c05',
@@ -275,7 +287,7 @@ export const EXPECTED_MANIFEST: Manifest = {
       label: 'Priority',
       name: 'priority',
       type: FieldType.NUMBER,
-      universalIdentifier: '7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d',
+      universalIdentifier: '7b57bd63-5a4c-46ca-9d52-42c8f02d1df6',
     },
     {
       label: 'Recipient',
@@ -593,6 +605,17 @@ export const EXPECTED_MANIFEST: Manifest = {
         relationType: RelationType.MANY_TO_ONE,
       },
     },
+    // Field on standard company object
+    {
+      defaultValue: false,
+      description: 'Whether the company can receive postcards',
+      icon: 'IconMailbox',
+      label: 'Can Receive Postcards',
+      name: 'canReceivePostcards',
+      objectUniversalIdentifier: '20202020-b374-4779-a561-80086cb2e17f',
+      type: FieldType.BOOLEAN,
+      universalIdentifier: 'f922fdb8-10a9-4f11-a1d0-992a779f6dff',
+    },
   ],
   objects: [
     {
@@ -709,7 +732,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Root notes tied to the RootNote',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Timeline Activities',
           name: 'timelineActivities',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -725,7 +748,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Root notes tied to the RootNote',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Favorites',
           name: 'favorites',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -741,7 +764,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Root notes tied to the RootNote',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Attachments',
           name: 'attachments',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -757,7 +780,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Root notes tied to the RootNote',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Note Targets',
           name: 'noteTargets',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -773,7 +796,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Root notes tied to the RootNote',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Task Targets',
           name: 'taskTargets',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -907,7 +930,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Post Card Recipients tied to the PostCardRecipient',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Timeline Activities',
           name: 'timelineActivities',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -923,7 +946,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Post Card Recipients tied to the PostCardRecipient',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Favorites',
           name: 'favorites',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -939,7 +962,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Post Card Recipients tied to the PostCardRecipient',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Attachments',
           name: 'attachments',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -955,7 +978,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Post Card Recipients tied to the PostCardRecipient',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Note Targets',
           name: 'noteTargets',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -971,7 +994,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Post Card Recipients tied to the PostCardRecipient',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Task Targets',
           name: 'taskTargets',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1027,31 +1050,38 @@ export const EXPECTED_MANIFEST: Manifest = {
           options: [
             {
               color: 'gray',
-              id: 'a1b2c3d4-0001-4000-8000-000000000001',
+              id: '1b008e19-1e59-4a07-b187-65a20e547c4e',
               label: 'Draft',
               position: 0,
               value: 'DRAFT',
             },
             {
               color: 'orange',
-              id: 'a1b2c3d4-0002-4000-8000-000000000002',
+              id: '452b9d40-889c-4342-9697-98319394db04',
               label: 'Sent',
               position: 1,
               value: 'SENT',
             },
             {
               color: 'green',
-              id: 'a1b2c3d4-0003-4000-8000-000000000003',
+              id: 'c2ed0b8c-a3ed-4383-aef9-e0441267bcfe',
               label: 'Delivered',
               position: 2,
               value: 'DELIVERED',
             },
             {
               color: 'orange',
-              id: 'a1b2c3d4-0004-4000-8000-000000000004',
+              id: 'c57a5e08-7ef7-49b8-87e6-32d720d22802',
               label: 'Returned',
               position: 3,
               value: 'RETURNED',
+            },
+            {
+              color: 'red',
+              id: '5248e3c4-23f8-512d-9bea-5c2df85bf83c',
+              label: 'Lost',
+              position: 4,
+              value: 'LOST',
             },
           ],
           type: FieldType.SELECT,
@@ -1165,7 +1195,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Post cards tied to the PostCard',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Timeline Activities',
           name: 'timelineActivities',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1181,7 +1211,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Post cards tied to the PostCard',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Favorites',
           name: 'favorites',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1197,7 +1227,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Post cards tied to the PostCard',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Attachments',
           name: 'attachments',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1213,7 +1243,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Post cards tied to the PostCard',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Note Targets',
           name: 'noteTargets',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1229,7 +1259,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Post cards tied to the PostCard',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Task Targets',
           name: 'taskTargets',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1264,8 +1294,8 @@ export const EXPECTED_MANIFEST: Manifest = {
         },
         {
           icon: 'IconHome',
-          label: 'Address',
-          name: 'address',
+          label: 'Mailing Address',
+          name: 'mailingAddress',
           type: FieldType.ADDRESS,
           universalIdentifier: 'd3a2b3c4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
         },
@@ -1368,7 +1398,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Recipients tied to the Recipient',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Timeline Activities',
           name: 'timelineActivities',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1384,7 +1414,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Recipients tied to the Recipient',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Favorites',
           name: 'favorites',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1400,7 +1430,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Recipients tied to the Recipient',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Attachments',
           name: 'attachments',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1416,7 +1446,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Recipients tied to the Recipient',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Note Targets',
           name: 'noteTargets',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1432,7 +1462,7 @@ export const EXPECTED_MANIFEST: Manifest = {
         {
           description: 'Recipients tied to the Recipient',
           icon: 'IconBuildingSkyscraper',
-          isNullable: false,
+          isNullable: true,
           label: 'Task Targets',
           name: 'taskTargets',
           relationTargetFieldMetadataUniversalIdentifier:
@@ -1511,7 +1541,7 @@ export const EXPECTED_MANIFEST: Manifest = {
           isVisible: true,
           position: 0,
           size: 200,
-          universalIdentifier: 'bf1a2b3c-0004-4a7b-8c9d-0e1f2a3b4c5d',
+          universalIdentifier: 'fd959c6f-3465-4a3a-b7ad-3f4004fffc9a',
         },
       ],
       icon: 'IconLink',
@@ -1557,6 +1587,14 @@ export const EXPECTED_MANIFEST: Manifest = {
           size: 200,
           universalIdentifier: 'bf1a2b3c-0003-4a7b-8c9d-0e1f2a3b4c5d',
         },
+        {
+          fieldMetadataUniversalIdentifier:
+            'd3a2b3c4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
+          isVisible: true,
+          position: 1,
+          size: 150,
+          universalIdentifier: 'bf1a2b3c-0004-4a7b-8c9d-0e1f2a3b4c5d',
+        },
       ],
       icon: 'IconUser',
       name: 'All Recipients',
@@ -1568,19 +1606,22 @@ export const EXPECTED_MANIFEST: Manifest = {
   ],
   navigationMenuItems: [
     {
+      type: NavigationMenuItemType.OBJECT,
       position: 2,
       universalIdentifier: 'c1a2b3c4-0003-4a7b-8c9d-0e1f2a3b4c5d',
-      viewUniversalIdentifier: 'b1a2b3c4-0003-4a7b-8c9d-0e1f2a3b4c5d',
+      targetObjectUniversalIdentifier: 'e1a2b3c4-5e6f-4a7b-8c9d-0e1f2a3b4c5e',
     },
     {
+      type: NavigationMenuItemType.OBJECT,
       position: 0,
       universalIdentifier: 'c1a2b3c4-0001-4a7b-8c9d-0e1f2a3b4c5d',
-      viewUniversalIdentifier: 'b1a2b3c4-0001-4a7b-8c9d-0e1f2a3b4c5d',
+      targetObjectUniversalIdentifier: '54b589ca-eeed-4950-a176-358418b85c05',
     },
     {
+      type: NavigationMenuItemType.OBJECT,
       position: 1,
       universalIdentifier: 'c1a2b3c4-0002-4a7b-8c9d-0e1f2a3b4c5d',
-      viewUniversalIdentifier: 'b1a2b3c4-0002-4a7b-8c9d-0e1f2a3b4c5d',
+      targetObjectUniversalIdentifier: 'd1a2b3c4-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
     },
   ],
   logicFunctions: [

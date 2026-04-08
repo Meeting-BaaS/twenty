@@ -30,7 +30,7 @@ export const computeWhereConditionParts = ({
   objectNameSingular: string;
   key: string;
   subFieldKey?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // oxlint-disable-next-line @typescripttypescript/no-explicit-any
   value: any;
   fieldMetadataType: FieldMetadataType;
   useDirectTableReference?: boolean;
@@ -65,7 +65,7 @@ export const computeWhereConditionParts = ({
       };
     case 'neq':
       return {
-        sql: `${fieldReference} != :${key}${paramSuffix}${hasNullEquivalentFieldValue ? ` OR ${fieldReference} IS NOT NULL` : ''}`,
+        sql: `${fieldReference} != :${key}${paramSuffix}${hasNullEquivalentFieldValue ? ` AND ${fieldReference} IS NOT NULL` : ''}`,
         params: { [`${key}${paramSuffix}`]: value },
       };
     case 'gt':

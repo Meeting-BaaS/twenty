@@ -1,31 +1,34 @@
-import { RecordIndexActionMenu } from '@/action-menu/components/RecordIndexActionMenu';
+import { RecordIndexCommandMenu } from '@/command-menu-item/components/RecordIndexCommandMenu';
+import { CommandMenuItemMoreActionsButton } from '@/command-menu-item/server-items/display/components/CommandMenuItemMoreActionsButton';
 import { MAIN_CONTEXT_STORE_INSTANCE_ID } from '@/context-store/constants/MainContextStoreInstanceId';
 import { contextStoreCurrentViewIdComponentState } from '@/context-store/states/contextStoreCurrentViewIdComponentState';
 import { contextStoreNumberOfSelectedRecordsComponentState } from '@/context-store/states/contextStoreNumberOfSelectedRecordsComponentState';
+import { isLayoutCustomizationModeEnabledState } from '@/layout-customization/states/isLayoutCustomizationModeEnabledState';
 import { useFilteredObjectMetadataItems } from '@/object-metadata/hooks/useFilteredObjectMetadataItems';
 import { RecordIndexPageHeaderIcon } from '@/object-record/record-index/components/RecordIndexPageHeaderIcon';
 import { useRecordIndexContextOrThrow } from '@/object-record/record-index/contexts/RecordIndexContext';
-import { PageHeaderToggleCommandMenuButton } from '@/ui/layout/page-header/components/PageHeaderToggleCommandMenuButton';
 import { PageHeader } from '@/ui/layout/page/components/PageHeader';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
-import styled from '@emotion/styled';
+import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
+import { styled } from '@linaria/react';
 import { t } from '@lingui/core/macro';
 import { isDefined } from 'twenty-shared/utils';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
 
 const StyledTitleWithSelectedRecords = styled.div`
   display: flex;
   flex-direction: row;
-  gap: ${({ theme }) => theme.spacing(1)};
+  gap: ${themeCssVariables.spacing[1]};
 `;
 
 const StyledTitle = styled.div`
-  color: ${({ theme }) => theme.font.color.primary};
-  padding-right: ${({ theme }) => theme.spacing(0.5)};
+  color: ${themeCssVariables.font.color.primary};
+  padding-right: ${themeCssVariables.spacing['0.5']};
 `;
 
 const StyledSelectedRecordsCount = styled.div`
-  color: ${({ theme }) => theme.font.color.tertiary};
-  padding-left: ${({ theme }) => theme.spacing(0.5)};
+  color: ${themeCssVariables.font.color.tertiary};
+  padding-left: ${themeCssVariables.spacing['0.5']};
 `;
 
 export const RecordIndexPageHeader = () => {
@@ -60,6 +63,9 @@ export const RecordIndexPageHeader = () => {
     contextStoreCurrentViewIdComponentState,
     MAIN_CONTEXT_STORE_INSTANCE_ID,
   );
+  const isLayoutCustomizationModeEnabled = useAtomStateValue(
+    isLayoutCustomizationModeEnabledState,
+  );
 
   return (
     <PageHeader
@@ -70,8 +76,10 @@ export const RecordIndexPageHeader = () => {
     >
       {isDefined(contextStoreCurrentViewId) && (
         <>
-          <RecordIndexActionMenu />
-          <PageHeaderToggleCommandMenuButton />
+          <RecordIndexCommandMenu />
+          {!isLayoutCustomizationModeEnabled && (
+            <CommandMenuItemMoreActionsButton />
+          )}
         </>
       )}
     </PageHeader>

@@ -31,21 +31,23 @@ export class FindManyResolverFactory
   ): Resolver<FindManyResolverArgs> {
     const internalContext = context;
 
-    return async (_source, args, requestContext, info) => {
+    return async (_source, args, _requestContext, info) => {
       const selectedFields = graphqlFields(info);
 
       const resolverContext = createQueryRunnerContext({
         workspaceSchemaBuilderContext: internalContext,
-        request: requestContext.req,
       });
 
       try {
         const {
-          records,
-          aggregatedValues,
-          totalCount,
-          pageInfo,
-          selectedFieldsResult,
+          results: {
+            records,
+            aggregatedValues,
+            totalCount,
+            pageInfo,
+            selectedFieldsResult,
+          },
+          args: processedArgs,
         } = await this.commonFindManyQueryRunnerService.execute(
           { ...args, selectedFields },
           resolverContext,
@@ -65,7 +67,7 @@ export class FindManyResolverFactory
           objectName: resolverContext.flatObjectMetadata.nameSingular,
           take: args.first ?? args.last ?? QUERY_MAX_RECORDS,
           totalCount,
-          order: args.orderBy,
+          order: processedArgs.orderBy,
           hasNextPage: pageInfo.hasNextPage,
           hasPreviousPage: pageInfo.hasPreviousPage,
         });

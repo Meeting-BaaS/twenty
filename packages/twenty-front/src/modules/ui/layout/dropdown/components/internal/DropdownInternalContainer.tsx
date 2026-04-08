@@ -10,11 +10,12 @@ import { OverlayContainer } from '@/ui/layout/overlay/components/OverlayContaine
 import { HotkeyEffect } from '@/ui/utilities/hotkey/components/HotkeyEffect';
 import { useHotkeysOnFocusedElement } from '@/ui/utilities/hotkey/hooks/useHotkeysOnFocusedElement';
 import { ClickOutsideListenerContext } from '@/ui/utilities/pointer-event/contexts/ClickOutsideListenerContext';
+import { ParentClickOutsideIdContext } from '@/ui/utilities/pointer-event/contexts/ParentClickOutsideIdContext';
 import { useListenClickOutside } from '@/ui/utilities/pointer-event/hooks/useListenClickOutside';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { useSetAtomComponentState } from '@/ui/utilities/state/jotai/hooks/useSetAtomComponentState';
-import styled from '@emotion/styled';
+import { styled } from '@linaria/react';
 import {
   FloatingPortal,
   type Placement,
@@ -141,6 +142,7 @@ export const DropdownInternalContainer = ({
   };
 
   const { excludedClickOutsideId } = useContext(ClickOutsideListenerContext);
+  const parentClickOutsideId = useContext(ParentClickOutsideIdContext);
 
   return (
     <>
@@ -162,7 +164,11 @@ export const DropdownInternalContainer = ({
           isDropdownInModal={isDropdownInModal}
         >
           <OverlayContainer>
-            <StyledDropdownInsideContainer id={dropdownId} data-select-disable>
+            <StyledDropdownInsideContainer
+              id={dropdownId}
+              data-select-disable
+              data-click-outside-id={parentClickOutsideId}
+            >
               {dropdownComponents}
             </StyledDropdownInsideContainer>
           </OverlayContainer>

@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
-import { type WorkspaceEntityManager } from 'src/engine/twenty-orm/entity-manager/workspace-entity-manager';
+import { EntityManager } from 'typeorm';
+
+import { ConnectedAccountEntity } from 'src/engine/metadata-modules/connected-account/entities/connected-account.entity';
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { buildSystemAuthContext } from 'src/engine/twenty-orm/utils/build-system-auth-context.util';
-import { type ConnectedAccountWorkspaceEntity } from 'src/modules/connected-account/standard-objects/connected-account.workspace-entity';
 
 export type UpdateConnectedAccountOnReconnectInput = {
   workspaceId: string;
@@ -11,8 +12,7 @@ export type UpdateConnectedAccountOnReconnectInput = {
   accessToken: string;
   refreshToken: string;
   scopes: string[];
-  connectedAccount: ConnectedAccountWorkspaceEntity;
-  manager: WorkspaceEntityManager;
+  transactionManager: EntityManager;
 };
 
 @Injectable()
@@ -30,30 +30,25 @@ export class UpdateConnectedAccountOnReconnectService {
       accessToken,
       refreshToken,
       scopes,
-      manager,
     } = input;
 
     const authContext = buildSystemAuthContext(workspaceId);
 
     await this.globalWorkspaceOrmManager.executeInWorkspaceContext(async () => {
-      const connectedAccountRepository =
-        await this.globalWorkspaceOrmManager.getRepository<ConnectedAccountWorkspaceEntity>(
-          workspaceId,
-          'connectedAccount',
+      await input.transactionManager
+        .getRepository(ConnectedAccountEntity)
+        .update(
+          {
+            id: connectedAccountId,
+            workspaceId,
+          },
+          {
+            accessToken,
+            refreshToken,
+            scopes,
+            authFailedAt: null,
+          },
         );
-
-      await connectedAccountRepository.update(
-        {
-          id: connectedAccountId,
-        },
-        {
-          accessToken,
-          refreshToken,
-          scopes,
-          authFailedAt: null,
-        },
-        manager,
-      );
     }, authContext);
   }
 }

@@ -14,7 +14,13 @@ export { AppBasePath } from './AppBasePath';
 export { AppPath } from './AppPath';
 export type { Arrayable } from './Arrayable';
 export type { ArraySortDirection } from './ArraySortDirection';
-export { CommandMenuPages } from './CommandMenuPages';
+export { CalendarChannelContactAutoCreationPolicy } from './CalendarChannelContactAutoCreationPolicy';
+export { CalendarChannelSyncStage } from './CalendarChannelSyncStage';
+export { CalendarChannelSyncStatus } from './CalendarChannelSyncStatus';
+export { CalendarChannelVisibility } from './CalendarChannelVisibility';
+export type { CommandMenuContextApi } from './CommandMenuContextApi';
+export { CommandMenuContextApiPageType } from './CommandMenuContextApiPageType';
+export { CommandMenuItemViewType } from './CommandMenuItemViewType';
 export type { ActorMetadata } from './composite-types/actor.composite-type';
 export {
   FieldActorSource,
@@ -44,14 +50,16 @@ export type {
   PhonesMetadata,
 } from './composite-types/phones.composite-type';
 export { phonesCompositeType } from './composite-types/phones.composite-type';
-export type { RichTextV2Metadata } from './composite-types/rich-text-v2.composite-type';
+export type { RichTextMetadata } from './composite-types/rich-text.composite-type';
 export {
-  richTextV2CompositeType,
-  richTextV2ValueSchema,
-} from './composite-types/rich-text-v2.composite-type';
+  richTextCompositeType,
+  richTextValueSchema,
+} from './composite-types/rich-text.composite-type';
 export type { CompositeFieldSubFieldName } from './CompositeFieldSubFieldNameType';
 export type { ConfigVariableValue } from './ConfigVariableValue';
+export type { ConfirmationModalCaller } from './ConfirmationModalCaller';
 export { ConnectedAccountProvider } from './ConnectedAccountProvider';
+export { CoreObjectNameSingular } from './CoreObjectNameSingular';
 export { CrudOperationType } from './CrudOperationType';
 export type {
   SnackBarVariant,
@@ -63,11 +71,12 @@ export type { ExcludeFunctions } from './ExcludeFunctions';
 export type { ExtractPropertiesThatEndsWithId } from './ExtractPropertiesThatEndsWithId';
 export type { ExtractPropertiesThatEndsWithIds } from './ExtractPropertiesThatEndsWithIds';
 export type { ExtractSerializedRelationProperties } from './ExtractSerializedRelationProperties.type';
+export { FeatureFlagKey } from './FeatureFlagKey';
 export type {
   FieldMetadataDefaultValueFunctionNames,
   FieldMetadataDefaultValueUuidFunction,
   FieldMetadataDefaultValueNowFunction,
-  FieldMetadataDefaultValueRichTextV2,
+  FieldMetadataDefaultValueRichText,
   FieldMetadataDefaultValueCurrency,
   FieldMetadataDefaultValueFullName,
   FieldMetadataDefaultValueAddress,
@@ -120,10 +129,19 @@ export type { IsExactly } from './IsExactly';
 export type { IsNever } from './IsNever.type';
 export type { IsSerializedRelation } from './IsSerializedRelation.type';
 export type { LogicFunctionEvent } from './LogicFunctionEvent';
+export { MessageChannelContactAutoCreationPolicy } from './MessageChannelContactAutoCreationPolicy';
+export { MessageChannelPendingGroupEmailsAction } from './MessageChannelPendingGroupEmailsAction';
+export { MessageChannelSyncStage } from './MessageChannelSyncStage';
+export { MessageChannelSyncStatus } from './MessageChannelSyncStatus';
+export { MessageChannelType } from './MessageChannelType';
+export { MessageChannelVisibility } from './MessageChannelVisibility';
+export { MessageFolderImportPolicy } from './MessageFolderImportPolicy';
+export { MessageFolderPendingSyncAction } from './MessageFolderPendingSyncAction';
 export { MessageParticipantRole } from './MessageParticipantRole';
 export type { MetadataGqlOperationSignature } from './MetadataGqlOperationSignature';
 export type { ModifiedProperties } from './ModifiedProperties';
 export type { NavigateOptions } from './NavigateOptions';
+export { NavigationMenuItemType } from './NavigationMenuItemType';
 export type { NonNullableRequired } from './NonNullableRequired';
 export type { Nullable } from './Nullable';
 export type { NullablePartial } from './NullablePartial';
@@ -156,6 +174,7 @@ export type {
   BarChartConfiguration,
   LineChartConfiguration,
   ViewConfiguration,
+  RecordTableConfiguration,
   FieldConfiguration,
   FieldsConfiguration,
   FieldRichTextConfiguration,
@@ -167,6 +186,7 @@ export type {
   NotesConfiguration,
   FilesConfiguration,
   EmailsConfiguration,
+  EmailThreadConfiguration,
   CalendarConfiguration,
   WorkflowConfiguration,
   WorkflowVersionConfiguration,
@@ -213,8 +233,8 @@ export type {
   ArrayFilter,
   RawJsonFilter,
   FilesFilter,
-  RichTextV2LeafFilter,
-  RichTextV2Filter,
+  RichTextLeafFilter,
+  RichTextFilter,
   TSVectorFilter,
   LeafFilter,
   AndObjectRecordFilter,
@@ -246,6 +266,7 @@ export type {
 export type { SerializedRelation } from './SerializedRelation.type';
 export { SERIALIZED_RELATION_BRAND } from './SerializedRelation.type';
 export { SettingsPath } from './SettingsPath';
+export { SidePanelPages } from './SidePanelPages';
 export type { Sources } from './SourcesType';
 export type {
   StepFilterGroup,
@@ -258,6 +279,7 @@ export { IsValidGraphQLEnumName } from './validators/is-valid-graphql-enum-name.
 export { ViewFilterGroupLogicalOperator } from './ViewFilterGroupLogicalOperator';
 export { ViewFilterOperand } from './ViewFilterOperand';
 export { ViewFilterOperandDeprecated } from './ViewFilterOperandDeprecated';
+export { ViewKey } from './ViewKey';
 export { ViewOpenRecordIn } from './ViewOpenRecordIn';
 export { ViewType } from './ViewType';
 export { ViewVisibility } from './ViewVisibility';

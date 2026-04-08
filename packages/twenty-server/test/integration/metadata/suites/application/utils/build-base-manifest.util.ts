@@ -18,7 +18,6 @@ export const buildBaseManifest = ({
     applicationVariables: {},
     packageJsonChecksum: null,
     yarnLockChecksum: null,
-    apiClientChecksum: null,
   },
   roles: [
     {
@@ -28,6 +27,7 @@ export const buildBaseManifest = ({
     },
   ],
   skills: [],
+  agents: [],
   objects: [],
   fields: [],
   logicFunctions: [],

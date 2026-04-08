@@ -2,12 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { type LanguageModelUsage } from 'ai';
 
-import { BILLING_FEATURE_USED } from 'src/engine/core-modules/billing/constants/billing-feature-used.constant';
-import { BillingMeterEventName } from 'src/engine/core-modules/billing/enums/billing-meter-event-names';
-import { type BillingUsageEvent } from 'src/engine/core-modules/billing/types/billing-usage-event.type';
+import { USAGE_RECORDED } from 'src/engine/core-modules/usage/constants/usage-recorded.constant';
+import { UsageOperationType } from 'src/engine/core-modules/usage/enums/usage-operation-type.enum';
+import { UsageResourceType } from 'src/engine/core-modules/usage/enums/usage-resource-type.enum';
+import { UsageUnit } from 'src/engine/core-modules/usage/enums/usage-unit.enum';
+import { type UsageEvent } from 'src/engine/core-modules/usage/types/usage-event.type';
+import { NATIVE_WEB_SEARCH_COST_PER_CALL_DOLLARS } from 'src/engine/metadata-modules/ai/ai-billing/constants/native-web-search-cost-per-call-dollars';
 import { computeCostBreakdown } from 'src/engine/metadata-modules/ai/ai-billing/utils/compute-cost-breakdown.util';
 import { convertDollarsToBillingCredits } from 'src/engine/metadata-modules/ai/ai-billing/utils/convert-dollars-to-billing-credits.util';
-import { type ModelId } from 'src/engine/metadata-modules/ai/ai-models/constants/ai-models-types.const';
+import { type ModelId } from 'src/engine/metadata-modules/ai/ai-models/types/model-id.type';
 import { AiModelRegistryService } from 'src/engine/metadata-modules/ai/ai-models/services/ai-model-registry.service';
 import { WorkspaceEventEmitter } from 'src/engine/workspace-event-emitter/workspace-event-emitter';
 
@@ -17,8 +20,8 @@ export type BillingUsageInput = {
 };
 
 @Injectable()
-export class AIBillingService {
-  private readonly logger = new Logger(AIBillingService.name);
+export class AiBillingService {
+  private readonly logger = new Logger(AiBillingService.name);
 
   constructor(
     private readonly workspaceEventEmitter: WorkspaceEventEmitter,
@@ -27,11 +30,6 @@ export class AIBillingService {
 
   calculateCost(modelId: ModelId, billingInput: BillingUsageInput): number {
     const model = this.aiModelRegistryService.getEffectiveModelConfig(modelId);
-
-    if (!model) {
-      throw new Error(`AI model with id ${modelId} not found`);
-    }
-
     const { usage, cacheCreationTokens = 0 } = billingInput;
 
     const breakdown = computeCostBreakdown(model, {
@@ -58,33 +56,87 @@ export class AIBillingService {
     modelId: ModelId,
     billingInput: BillingUsageInput,
     workspaceId: string,
+    operationType: UsageOperationType,
     agentId?: string | null,
+    userWorkspaceId?: string | null,
   ): void {
     const costInDollars = this.calculateCost(modelId, billingInput);
-    const creditsUsed = Math.round(
+    const creditsUsedMicro = Math.round(
       convertDollarsToBillingCredits(costInDollars),
     );
 
-    this.sendAiTokenUsageEvent(workspaceId, creditsUsed, modelId, agentId);
+    const totalTokens =
+      (billingInput.usage.inputTokens ?? 0) +
+      (billingInput.usage.outputTokens ?? 0) +
+      (billingInput.cacheCreationTokens ?? 0);
+
+    this.emitAiTokenUsageEvent(
+      workspaceId,
+      creditsUsedMicro,
+      totalTokens,
+      modelId,
+      operationType,
+      agentId,
+      userWorkspaceId,
+    );
   }
 
-  private sendAiTokenUsageEvent(
+  billNativeWebSearchUsage(
+    nativeWebSearchCallCount: number,
     workspaceId: string,
-    creditsUsed: number,
-    modelId: ModelId,
-    agentId?: string | null,
+    userWorkspaceId?: string | null,
   ): void {
-    this.workspaceEventEmitter.emitCustomBatchEvent<BillingUsageEvent>(
-      BILLING_FEATURE_USED,
+    if (nativeWebSearchCallCount <= 0) {
+      return;
+    }
+
+    const costInDollars =
+      nativeWebSearchCallCount * NATIVE_WEB_SEARCH_COST_PER_CALL_DOLLARS;
+    const creditsUsedMicro = Math.round(
+      convertDollarsToBillingCredits(costInDollars),
+    );
+
+    this.logger.log(
+      `Native web search billing: ${nativeWebSearchCallCount} calls, $${costInDollars.toFixed(4)}`,
+    );
+
+    this.workspaceEventEmitter.emitCustomBatchEvent<UsageEvent>(
+      USAGE_RECORDED,
       [
         {
-          eventName: BillingMeterEventName.WORKFLOW_NODE_RUN,
-          value: creditsUsed,
-          dimensions: {
-            execution_type: 'ai_token',
-            resource_id: agentId || null,
-            execution_context_1: modelId,
-          },
+          resourceType: UsageResourceType.AI,
+          operationType: UsageOperationType.WEB_SEARCH,
+          creditsUsedMicro,
+          quantity: nativeWebSearchCallCount,
+          unit: UsageUnit.INVOCATION,
+          userWorkspaceId: userWorkspaceId || null,
+        },
+      ],
+      workspaceId,
+    );
+  }
+
+  private emitAiTokenUsageEvent(
+    workspaceId: string,
+    creditsUsedMicro: number,
+    totalTokens: number,
+    modelId: ModelId,
+    operationType: UsageOperationType,
+    agentId?: string | null,
+    userWorkspaceId?: string | null,
+  ): void {
+    this.workspaceEventEmitter.emitCustomBatchEvent<UsageEvent>(
+      USAGE_RECORDED,
+      [
+        {
+          resourceType: UsageResourceType.AI,
+          operationType,
+          creditsUsedMicro,
+          quantity: totalTokens,
+          unit: UsageUnit.TOKEN,
+          resourceId: agentId || null,
+          resourceContext: modelId,
+          userWorkspaceId: userWorkspaceId || null,
         },
       ],
       workspaceId,

@@ -1,3 +1,4 @@
+import { AIChatCompactionIndicator } from '@/ai/components/AIChatCompactionIndicator';
 import { CodeExecutionDisplay } from '@/ai/components/CodeExecutionDisplay';
 import { RoutingStatusDisplay } from '@/ai/components/RoutingStatusDisplay';
 import { ThinkingStepsDisplay } from '@/ai/components/ThinkingStepsDisplay';
@@ -6,37 +7,42 @@ import { IconDotsVertical } from 'twenty-ui/display';
 import { LazyMarkdownRenderer } from '@/ai/components/LazyMarkdownRenderer';
 import { ToolStepRenderer } from '@/ai/components/ToolStepRenderer';
 import { groupContiguousThinkingStepParts } from '@/ai/utils/groupContiguousThinkingStepParts';
-import { useTheme } from '@emotion/react';
-import styled from '@emotion/styled';
+import { isCodeInterpreterToolPart } from '@/ai/utils/isCodeInterpreterToolPart';
+import { styled } from '@linaria/react';
 import { isToolUIPart, type ToolUIPart } from 'ai';
 import { type ExtendedUIMessagePart } from 'twenty-shared/ai';
+import { useContext } from 'react';
+import { ThemeContext, themeCssVariables } from 'twenty-ui/theme-constants';
 
 const StyledMessagePartsContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing(1)};
+  gap: ${themeCssVariables.spacing[1]};
 `;
 
 const StyledLoadingIconContainer = styled.div`
   align-items: center;
-  border: ${({ theme }) => `1px solid ${theme.border.color.light}`};
-  border-radius: ${({ theme }) => theme.border.radius.md};
+  border: 1px solid ${themeCssVariables.border.color.light};
+  border-radius: ${themeCssVariables.border.radius.md};
   display: flex;
   justify-content: center;
-  padding-inline: ${({ theme }) => theme.spacing(1)};
+  padding-inline: ${themeCssVariables.spacing[1]};
 `;
 
-const StyledLoadingIcon = styled(IconDotsVertical)`
-  color: ${({ theme }) => theme.font.color.light};
+const StyledLoadingIconWrapper = styled.span`
+  color: ${themeCssVariables.font.color.light};
+  display: flex;
   transform: rotate(90deg);
 `;
 
 const InitialLoadingIndicator = () => {
-  const theme = useTheme();
+  const { theme } = useContext(ThemeContext);
 
   return (
     <StyledLoadingIconContainer>
-      <StyledLoadingIcon size={theme.icon.size.xl} />
+      <StyledLoadingIconWrapper>
+        <IconDotsVertical size={theme.icon.size.xl} />
+      </StyledLoadingIconWrapper>
     </StyledLoadingIconContainer>
   );
 };
@@ -53,6 +59,8 @@ const MessagePartRenderer = ({
       return <LazyMarkdownRenderer text={part.text} />;
     case 'data-routing-status':
       return <RoutingStatusDisplay data={part.data} />;
+    case 'data-compaction':
+      return <AIChatCompactionIndicator />;
     case 'data-code-execution':
       return (
         <CodeExecutionDisplay
@@ -88,16 +96,13 @@ export const AIChatAssistantMessageRenderer = ({
   isLastMessageStreaming: boolean;
   hasError?: boolean;
 }) => {
-  // Filter out data-code-execution parts when tool-code_interpreter exists
-  // (the tool part contains the final result, data-code-execution is for streaming updates)
-  // Also filter out data-thread-title (consumed by useAgentChat, not rendered)
-  const hasCodeInterpreterTool = messageParts.some(
-    (part) => part.type === 'tool-code_interpreter',
+  const hasCodeExecutionData = messageParts.some(
+    (part) => part.type === 'data-code-execution',
   );
   const filteredParts = messageParts.filter(
     (part) =>
       part.type !== 'data-thread-title' &&
-      (!hasCodeInterpreterTool || part.type !== 'data-code-execution'),
+      !(hasCodeExecutionData && isCodeInterpreterToolPart(part)),
   );
   const renderItems = groupContiguousThinkingStepParts(filteredParts);
 

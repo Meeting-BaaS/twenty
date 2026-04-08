@@ -1,27 +1,22 @@
-import styled from '@emotion/styled';
+import { styled } from '@linaria/react';
 import { type LogicFunction } from '~/generated-metadata/graphql';
 import { TableCell } from '@/ui/layout/table/components/TableCell';
-import { useTheme } from '@emotion/react';
-import { IconChevronRight } from 'twenty-ui/display';
+import {
+  IconChevronRight,
+  IconCode,
+  OverflowingTextWithTooltip,
+} from 'twenty-ui/display';
 import { StyledTableRow } from '@/settings/logic-functions/components/SettingsLogicFunctionsTable';
+import { useContext } from 'react';
+import { ThemeContext, themeCssVariables } from 'twenty-ui/theme-constants';
 
-const StyledNameTableCell = styled(TableCell)`
-  color: ${({ theme }) => theme.font.color.primary};
-  gap: ${({ theme }) => theme.spacing(2)};
+const StyledIconContainer = styled.span`
+  align-items: center;
+  display: flex;
 `;
 
-const StyledRuntimeTableCell = styled(TableCell)`
-  color: ${({ theme }) => theme.font.color.secondary};
-  gap: ${({ theme }) => theme.spacing(2)};
-`;
-
-const StyledIconTableCell = styled(TableCell)`
-  justify-content: center;
-  padding-right: ${({ theme }) => theme.spacing(1)};
-`;
-
-const StyledIconChevronRight = styled(IconChevronRight)`
-  color: ${({ theme }) => theme.font.color.tertiary};
+const StyledIconChevronRightContainer = styled(StyledIconContainer)`
+  color: ${themeCssVariables.font.color.tertiary};
 `;
 
 export const SettingsLogicFunctionsFieldItemTableRow = ({
@@ -31,18 +26,67 @@ export const SettingsLogicFunctionsFieldItemTableRow = ({
   logicFunction: LogicFunction;
   to: string;
 }) => {
-  const theme = useTheme();
+  const { theme } = useContext(ThemeContext);
+
+  const computeTrigger = () => {
+    const cronTrigger = logicFunction.cronTriggerSettings;
+
+    const routeTrigger = logicFunction.httpRouteTriggerSettings;
+
+    const databaseEventTriggerSettings =
+      logicFunction.databaseEventTriggerSettings;
+
+    const isTool = logicFunction.isTool;
+
+    if (isTool) {
+      return 'Tool';
+    }
+
+    if (cronTrigger) {
+      return 'Cron';
+    }
+
+    if (routeTrigger) {
+      return 'Route';
+    }
+
+    if (databaseEventTriggerSettings) {
+      return databaseEventTriggerSettings.eventName;
+    }
+
+    return '';
+  };
   return (
     <StyledTableRow to={to}>
-      <StyledNameTableCell>{logicFunction.name}</StyledNameTableCell>
-      <StyledNameTableCell></StyledNameTableCell>
-      <StyledRuntimeTableCell>{logicFunction.runtime}</StyledRuntimeTableCell>
-      <StyledIconTableCell>
-        <StyledIconChevronRight
-          size={theme.icon.size.md}
-          stroke={theme.icon.stroke.sm}
-        />
-      </StyledIconTableCell>
+      <TableCell
+        color={themeCssVariables.font.color.primary}
+        gap={themeCssVariables.spacing[2]}
+      >
+        <StyledIconContainer>
+          <IconCode size={theme.icon.size.md} />
+        </StyledIconContainer>
+        <OverflowingTextWithTooltip text={logicFunction.name} />
+      </TableCell>
+      <TableCell
+        color={themeCssVariables.font.color.secondary}
+        gap={themeCssVariables.spacing[2]}
+        align={'right'}
+        whiteSpace="nowrap"
+        overflow="hidden"
+      >
+        <OverflowingTextWithTooltip text={computeTrigger()} />
+      </TableCell>
+      <TableCell
+        align="center"
+        padding={`0 ${themeCssVariables.spacing[1]} 0 ${themeCssVariables.spacing[2]}`}
+      >
+        <StyledIconChevronRightContainer>
+          <IconChevronRight
+            size={theme.icon.size.md}
+            stroke={theme.icon.stroke.sm}
+          />
+        </StyledIconChevronRightContainer>
+      </TableCell>
     </StyledTableRow>
   );
 };

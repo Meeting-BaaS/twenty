@@ -68,10 +68,12 @@ export const createStandardPageLayoutTabFlatMetadata = ({
     pageLayoutUniversalIdentifier: layout.universalIdentifier,
     widgetIds,
     widgetUniversalIdentifiers,
+    isActive: true,
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
     icon,
     layoutMode,
+    overrides: null,
   };
 };

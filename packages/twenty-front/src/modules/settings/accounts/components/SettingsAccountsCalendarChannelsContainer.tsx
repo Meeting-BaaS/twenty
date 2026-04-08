@@ -1,24 +1,18 @@
-import styled from '@emotion/styled';
+import { styled } from '@linaria/react';
 
-import {
-  type CalendarChannel,
-  CalendarChannelSyncStage,
-} from '@/accounts/types/CalendarChannel';
-import { type ConnectedAccount } from '@/accounts/types/ConnectedAccount';
-import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
-import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
-import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
-import { useFindManyRecords } from '@/object-record/hooks/useFindManyRecords';
 import { SettingsAccountsCalendarChannelDetails } from '@/settings/accounts/components/SettingsAccountsCalendarChannelDetails';
 import { SettingsNewAccountSection } from '@/settings/accounts/components/SettingsNewAccountSection';
 import { SETTINGS_ACCOUNT_CALENDAR_CHANNELS_TAB_LIST_COMPONENT_ID } from '@/settings/accounts/constants/SettingsAccountCalendarChannelsTabListComponentId';
+import { useMyCalendarChannels } from '@/settings/accounts/hooks/useMyCalendarChannels';
 import { TabList } from '@/ui/layout/tab-list/components/TabList';
 import { activeTabIdComponentState } from '@/ui/layout/tab-list/states/activeTabIdComponentState';
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import React from 'react';
+import { CalendarChannelSyncStage } from 'twenty-shared/types';
+import { themeCssVariables } from 'twenty-ui/theme-constants';
 
 const StyledCalenderContainer = styled.div`
-  padding-bottom: ${({ theme }) => theme.spacing(6)};
+  padding-bottom: ${themeCssVariables.spacing[6]};
 `;
 
 export const SettingsAccountsCalendarChannelsContainer = () => {
@@ -26,33 +20,13 @@ export const SettingsAccountsCalendarChannelsContainer = () => {
     activeTabIdComponentState,
     SETTINGS_ACCOUNT_CALENDAR_CHANNELS_TAB_LIST_COMPONENT_ID,
   );
-  const currentWorkspaceMember = useAtomStateValue(currentWorkspaceMemberState);
 
-  const { records: accounts } = useFindManyRecords<ConnectedAccount>({
-    objectNameSingular: CoreObjectNameSingular.ConnectedAccount,
-    filter: {
-      accountOwnerId: {
-        eq: currentWorkspaceMember?.id,
-      },
-    },
-  });
+  const { channels: allCalendarChannels } = useMyCalendarChannels();
 
-  const { records: calendarChannels } = useFindManyRecords<
-    CalendarChannel & {
-      connectedAccount: ConnectedAccount;
-    }
-  >({
-    objectNameSingular: CoreObjectNameSingular.CalendarChannel,
-    filter: {
-      connectedAccountId: {
-        in: accounts.map((account) => account.id),
-      },
-      syncStage: {
-        neq: CalendarChannelSyncStage.PENDING_CONFIGURATION,
-      },
-    },
-    skip: !accounts.length,
-  });
+  const calendarChannels = allCalendarChannels.filter(
+    (channel) =>
+      channel.syncStage !== CalendarChannelSyncStage.PENDING_CONFIGURATION,
+  );
 
   const tabs = [
     ...calendarChannels.map((calendarChannel) => ({

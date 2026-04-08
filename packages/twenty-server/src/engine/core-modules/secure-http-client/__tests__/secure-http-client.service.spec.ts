@@ -1,8 +1,26 @@
 import * as http from 'http';
 import * as https from 'https';
 
+import axiosRetry from 'axios-retry';
+
 import { SecureHttpClientService } from 'src/engine/core-modules/secure-http-client/secure-http-client.service';
 import { type TwentyConfigService } from 'src/engine/core-modules/twenty-config/twenty-config.service';
+
+jest.mock('axios-retry', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock(
+  'src/engine/core-modules/secure-http-client/utils/resolve-and-validate-hostname.util',
+  () => ({
+    resolveAndValidateHostname: jest.fn(),
+  }),
+);
+
+import { resolveAndValidateHostname } from 'src/engine/core-modules/secure-http-client/utils/resolve-and-validate-hostname.util';
+
+const mockResolveAndValidate = jest.mocked(resolveAndValidateHostname);
 
 const createMockConfigService = (
   overrides: Record<string, unknown> = {},
@@ -81,6 +99,43 @@ describe('SecureHttpClientService', () => {
 
       expect(client.defaults.baseURL).toBe('https://example.com/api');
     });
+
+    it('should configure axios-retry when retries is greater than 0', () => {
+      jest.mocked(axiosRetry).mockClear();
+      const service = new SecureHttpClientService(createMockConfigService());
+      const client = service.getHttpClient({
+        retries: 2,
+        shouldResetTimeout: true,
+      });
+
+      expect(axiosRetry).toHaveBeenCalledWith(client, {
+        retries: 2,
+        shouldResetTimeout: true,
+        retryCondition: expect.any(Function),
+      });
+    });
+
+    it('should not configure axios-retry when retries is 0', () => {
+      jest.mocked(axiosRetry).mockClear();
+      const service = new SecureHttpClientService(createMockConfigService());
+
+      service.getHttpClient({ retries: 0 });
+
+      expect(axiosRetry).not.toHaveBeenCalled();
+    });
+
+    it('should not leak retry config into axios defaults', () => {
+      const service = new SecureHttpClientService(createMockConfigService());
+      const client = service.getHttpClient({
+        retries: 2,
+        shouldResetTimeout: true,
+        baseURL: 'https://example.com',
+      });
+
+      expect(client.defaults.baseURL).toBe('https://example.com');
+      expect(client.defaults).not.toHaveProperty('retries');
+      expect(client.defaults).not.toHaveProperty('shouldResetTimeout');
+    });
   });
 
   describe('getInternalHttpClient', () => {
@@ -100,6 +155,163 @@ describe('SecureHttpClientService', () => {
       });
 
       expect(client.defaults.baseURL).toBe('http://localhost:3000');
+    });
+  });
+
+  describe('protocol validation interceptor', () => {
+    it('should allow http URLs when safe mode is on', () => {
+      const service = new SecureHttpClientService(
+        createMockConfigService({ OUTBOUND_HTTP_SAFE_MODE_ENABLED: true }),
+      );
+      const client = service.getHttpClient();
+
+      const interceptorHandlers = (
+        client.interceptors.request as unknown as {
+          handlers: Array<{ fulfilled: Function }>;
+        }
+      ).handlers;
+
+      const protocolInterceptor = interceptorHandlers[0].fulfilled;
+
+      expect(() =>
+        protocolInterceptor({ url: 'http://example.com/api' }),
+      ).not.toThrow();
+    });
+
+    it('should allow https URLs when safe mode is on', () => {
+      const service = new SecureHttpClientService(
+        createMockConfigService({ OUTBOUND_HTTP_SAFE_MODE_ENABLED: true }),
+      );
+      const client = service.getHttpClient();
+
+      const interceptorHandlers = (
+        client.interceptors.request as unknown as {
+          handlers: Array<{ fulfilled: Function }>;
+        }
+      ).handlers;
+
+      const protocolInterceptor = interceptorHandlers[0].fulfilled;
+
+      expect(() =>
+        protocolInterceptor({ url: 'https://example.com/api' }),
+      ).not.toThrow();
+    });
+
+    it('should reject ftp URLs when safe mode is on', () => {
+      const service = new SecureHttpClientService(
+        createMockConfigService({ OUTBOUND_HTTP_SAFE_MODE_ENABLED: true }),
+      );
+      const client = service.getHttpClient();
+
+      const interceptorHandlers = (
+        client.interceptors.request as unknown as {
+          handlers: Array<{ fulfilled: Function }>;
+        }
+      ).handlers;
+
+      const protocolInterceptor = interceptorHandlers[0].fulfilled;
+
+      expect(() =>
+        protocolInterceptor({ url: 'ftp://internal-server/data' }),
+      ).toThrow('Protocol ftp: is not allowed');
+    });
+
+    it('should reject file URLs when safe mode is on', () => {
+      const service = new SecureHttpClientService(
+        createMockConfigService({ OUTBOUND_HTTP_SAFE_MODE_ENABLED: true }),
+      );
+      const client = service.getHttpClient();
+
+      const interceptorHandlers = (
+        client.interceptors.request as unknown as {
+          handlers: Array<{ fulfilled: Function }>;
+        }
+      ).handlers;
+
+      const protocolInterceptor = interceptorHandlers[0].fulfilled;
+
+      expect(() => protocolInterceptor({ url: 'file:///etc/passwd' })).toThrow(
+        'Protocol file: is not allowed',
+      );
+    });
+
+    it('should reject non-http baseURL when url is empty string', () => {
+      const service = new SecureHttpClientService(
+        createMockConfigService({ OUTBOUND_HTTP_SAFE_MODE_ENABLED: true }),
+      );
+      const client = service.getHttpClient();
+
+      const interceptorHandlers = (
+        client.interceptors.request as unknown as {
+          handlers: Array<{ fulfilled: Function }>;
+        }
+      ).handlers;
+
+      const protocolInterceptor = interceptorHandlers[0].fulfilled;
+
+      expect(() =>
+        protocolInterceptor({
+          url: '',
+          baseURL: 'ftp://internal-server/data',
+        }),
+      ).toThrow('Protocol ftp: is not allowed');
+    });
+
+    it('should not add protocol interceptor when safe mode is off', () => {
+      const service = new SecureHttpClientService(createMockConfigService());
+      const client = service.getHttpClient();
+
+      const interceptorHandlers = (
+        client.interceptors.request as unknown as {
+          handlers: Array<{ fulfilled: Function }>;
+        }
+      ).handlers;
+
+      expect(interceptorHandlers.length).toBe(0);
+    });
+  });
+
+  describe('getValidatedHost', () => {
+    it('should return the original hostname when safe mode is off', async () => {
+      const service = new SecureHttpClientService(createMockConfigService());
+
+      const result = await service.getValidatedHost(
+        'https://caldav.icloud.com/principals/',
+      );
+
+      expect(result).toBe('https://caldav.icloud.com/principals/');
+      expect(mockResolveAndValidate).not.toHaveBeenCalled();
+    });
+
+    it('should validate and return resolved IP when safe mode is on', async () => {
+      mockResolveAndValidate.mockResolvedValue('17.248.239.66');
+      const service = new SecureHttpClientService(
+        createMockConfigService({ OUTBOUND_HTTP_SAFE_MODE_ENABLED: true }),
+      );
+
+      const result = await service.getValidatedHost(
+        'https://caldav.icloud.com/principals/',
+      );
+
+      expect(mockResolveAndValidate).toHaveBeenCalledWith(
+        'https://caldav.icloud.com/principals/',
+      );
+      expect(result).toBe('17.248.239.66');
+    });
+
+    it('should throw when hostname resolves to a private IP', async () => {
+      mockResolveAndValidate.mockRejectedValue(
+        new Error(
+          'Connection to internal IP address 192.168.1.1 is not allowed.',
+        ),
+      );
+      const service = new SecureHttpClientService(
+        createMockConfigService({ OUTBOUND_HTTP_SAFE_MODE_ENABLED: true }),
+      );
+
+      await expect(
+        service.getValidatedHost('https://my-local-server.local/'),
+      ).rejects.toThrow('internal IP address');
     });
   });
 

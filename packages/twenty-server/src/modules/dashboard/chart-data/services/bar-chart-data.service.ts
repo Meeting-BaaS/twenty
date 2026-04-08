@@ -8,7 +8,7 @@ import {
   isDefined,
 } from 'twenty-shared/utils';
 
-import { AuthContext } from 'src/engine/core-modules/auth/types/auth-context.type';
+import { type WorkspaceAuthContext } from 'src/engine/core-modules/auth/types/workspace-auth-context.type';
 import { WorkspaceManyOrAllFlatEntityMapsCacheService } from 'src/engine/metadata-modules/flat-entity/services/workspace-many-or-all-flat-entity-maps-cache.service';
 import { findFlatEntityByIdInFlatEntityMaps } from 'src/engine/metadata-modules/flat-entity/utils/find-flat-entity-by-id-in-flat-entity-maps.util';
 import { FlatFieldMetadata } from 'src/engine/metadata-modules/flat-field-metadata/types/flat-field-metadata.type';
@@ -30,8 +30,6 @@ import { FieldMetadataOption } from 'src/modules/dashboard/chart-data/types/fiel
 import { GroupByRawResult } from 'src/modules/dashboard/chart-data/types/group-by-raw-result.type';
 import { RawDimensionValue } from 'src/modules/dashboard/chart-data/types/raw-dimension-value.type';
 import { applyGapFilling } from 'src/modules/dashboard/chart-data/utils/apply-gap-filling.util';
-import { filterByRange } from 'src/modules/dashboard/chart-data/utils/filter-by-range.util';
-import { filterTwoDimensionalDataByRange } from 'src/modules/dashboard/chart-data/utils/filter-two-dimensional-data-by-range.util';
 import { getAggregateOperationLabel } from 'src/modules/dashboard/chart-data/utils/get-aggregate-operation-label.util';
 import { getFieldMetadata } from 'src/modules/dashboard/chart-data/utils/get-field-metadata.util';
 import { getSelectOptions } from 'src/modules/dashboard/chart-data/utils/get-select-options.util';
@@ -44,7 +42,7 @@ type GetBarChartDataParams = {
   workspaceId: string;
   objectMetadataId: string;
   configuration: BarChartConfigurationDTO;
-  authContext: AuthContext;
+  authContext: WorkspaceAuthContext;
 };
 
 @Injectable()
@@ -230,21 +228,12 @@ export class BarChartDataService {
         )
       : rawResults;
 
-    const rangeFilteredResults =
-      isDefined(configuration.rangeMin) || isDefined(configuration.rangeMax)
-        ? filterByRange(
-            filteredResults,
-            configuration.rangeMin,
-            configuration.rangeMax,
-          )
-        : filteredResults;
-
     const isDescOrder =
       configuration.primaryAxisOrderBy === GraphOrderBy.FIELD_DESC;
 
     const { data: gapFilledResults, wasTruncated: dateRangeWasTruncated } =
       applyGapFilling({
-        data: rangeFilteredResults,
+        data: filteredResults,
         primaryAxisGroupByField,
         dateGranularity: configuration.primaryAxisDateGranularity,
         omitNullValues: configuration.omitNullValues ?? false,
@@ -370,22 +359,12 @@ export class BarChartDataService {
       configuration.groupMode ?? BarChartGroupMode.STACKED;
     const isStacked = effectiveGroupMode === BarChartGroupMode.STACKED;
 
-    const rangeFilteredResults =
-      !isStacked &&
-      (isDefined(configuration.rangeMin) || isDefined(configuration.rangeMax))
-        ? filterByRange(
-            filteredResults,
-            configuration.rangeMin,
-            configuration.rangeMax,
-          )
-        : filteredResults;
-
     const isDescOrder =
       configuration.primaryAxisOrderBy === GraphOrderBy.FIELD_DESC;
 
     const { data: gapFilledResults, wasTruncated: dateRangeWasTruncated } =
       applyGapFilling({
-        data: rangeFilteredResults,
+        data: filteredResults,
         primaryAxisGroupByField,
         dateGranularity: configuration.primaryAxisDateGranularity,
         omitNullValues: configuration.omitNullValues ?? false,
@@ -506,18 +485,6 @@ export class BarChartDataService {
 
         finalLimitedData = finalLimitedData.slice(0, Math.max(1, maxXValues));
       }
-    }
-
-    if (
-      isStacked &&
-      (isDefined(configuration.rangeMin) || isDefined(configuration.rangeMax))
-    ) {
-      finalLimitedData = filterTwoDimensionalDataByRange(
-        finalLimitedData,
-        limitedKeys,
-        configuration.rangeMin,
-        configuration.rangeMax,
-      );
     }
 
     const finalData = configuration.isCumulative

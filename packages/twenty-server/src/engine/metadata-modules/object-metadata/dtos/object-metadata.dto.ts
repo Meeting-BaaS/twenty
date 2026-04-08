@@ -16,7 +16,7 @@ import { ObjectStandardOverridesDTO } from 'src/engine/metadata-modules/object-m
 
 @ObjectType('Object')
 @Authorize({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // oxlint-disable-next-line @typescripttypescript/no-explicit-any
   authorize: (context: any) => ({
     workspaceId: { eq: context?.req?.workspace?.id },
   }),
@@ -32,7 +32,7 @@ export class ObjectMetadataDTO {
   @IDField(() => UUIDScalarType)
   id: string;
 
-  @IDField(() => UUIDScalarType)
+  @Field()
   universalIdentifier: string;
 
   @Field()
@@ -58,6 +58,9 @@ export class ObjectMetadataDTO {
 
   @Field({ nullable: true })
   shortcut?: string;
+
+  @Field({ nullable: true })
+  color?: string;
 
   @FilterableField()
   isCustom: boolean;

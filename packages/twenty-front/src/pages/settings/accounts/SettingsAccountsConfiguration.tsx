@@ -5,14 +5,15 @@ import { useSetAtomState } from '@/ui/utilities/state/jotai/hooks/useSetAtomStat
 
 import { type CalendarChannel } from '@/accounts/types/CalendarChannel';
 import { type MessageChannel } from '@/accounts/types/MessageChannel';
-import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
-import { useGenerateDepthRecordGqlFieldsFromObject } from '@/object-record/graphql/record-gql-fields/hooks/useGenerateDepthRecordGqlFieldsFromObject';
-import { useFindManyRecords } from '@/object-record/hooks/useFindManyRecords';
-import { settingsAccountsSelectedMessageChannelState } from '@/settings/accounts/states/settingsAccountsSelectedMessageChannelState';
-import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { SettingsPath } from 'twenty-shared/types';
+import { GET_MY_CALENDAR_CHANNELS } from '@/settings/accounts/graphql/queries/getMyCalendarChannels';
+import { GET_MY_MESSAGE_CHANNELS } from '@/settings/accounts/graphql/queries/getMyMessageChannels';
+import { settingsAccountsSelectedMessageChannelState } from '@/settings/accounts/states/settingsAccountsSelectedMessageChannelState';
+import { useMutation, useQuery } from '@apollo/client/react';
+import { useSnackBar } from '@/ui/feedback/snack-bar-manager/hooks/useSnackBar';
 import { getSettingsPath, isDefined } from 'twenty-shared/utils';
-import { useStartChannelSyncMutation } from '~/generated-metadata/graphql';
+import { StartChannelSyncDocument } from '~/generated-metadata/graphql';
+import { SettingsAccountsConfigurationSelectedMessageChannelEffect } from '~/pages/settings/accounts/SettingsAccountsConfigurationSelectedMessageChannelEffect';
 import { SettingsAccountsConfigurationStepCalendar } from '~/pages/settings/accounts/SettingsAccountsConfigurationStepCalendar';
 import { SettingsAccountsConfigurationStepEmail } from '~/pages/settings/accounts/SettingsAccountsConfigurationStepEmail';
 
@@ -28,8 +29,9 @@ export const SettingsAccountsConfiguration = () => {
   }>();
   const navigate = useNavigate();
   const { enqueueSuccessSnackBar, enqueueErrorSnackBar } = useSnackBar();
-  const [startChannelSyncMutation, { loading: isSubmitting }] =
-    useStartChannelSyncMutation();
+  const [startChannelSyncMutation, { loading: isSubmitting }] = useMutation(
+    StartChannelSyncDocument,
+  );
   const setSettingsAccountsSelectedMessageChannel = useSetAtomState(
     settingsAccountsSelectedMessageChannelState,
   );
@@ -39,37 +41,24 @@ export const SettingsAccountsConfiguration = () => {
       SettingsAccountsConfigurationStep.Email,
     );
 
-  const { recordGqlFields } = useGenerateDepthRecordGqlFieldsFromObject({
-    objectNameSingular: CoreObjectNameSingular.MessageChannel,
-    depth: 1,
-    shouldOnlyLoadRelationIdentifiers: false,
-  });
-
-  const { records: messageChannels } = useFindManyRecords<MessageChannel>({
-    objectNameSingular: CoreObjectNameSingular.MessageChannel,
-    filter: {
-      connectedAccountId: {
-        eq: connectedAccountId,
-      },
-    },
-    recordGqlFields,
-    onCompleted: (data) => {
-      if (isDefined(data[0])) {
-        setSettingsAccountsSelectedMessageChannel(data[0]);
-      }
-    },
+  const { data: metadataMessageChannelData } = useQuery<{
+    myMessageChannels: MessageChannel[];
+  }>(GET_MY_MESSAGE_CHANNELS, {
+    variables: { connectedAccountId },
     skip: !connectedAccountId,
   });
 
-  const { records: calendarChannels } = useFindManyRecords<CalendarChannel>({
-    objectNameSingular: CoreObjectNameSingular.CalendarChannel,
-    filter: {
-      connectedAccountId: {
-        eq: connectedAccountId,
-      },
-    },
+  const { data: metadataCalendarChannelData } = useQuery<{
+    myCalendarChannels: CalendarChannel[];
+  }>(GET_MY_CALENDAR_CHANNELS, {
+    variables: { connectedAccountId },
     skip: !connectedAccountId,
   });
+
+  const messageChannels = metadataMessageChannelData?.myMessageChannels ?? [];
+
+  const calendarChannels =
+    metadataCalendarChannelData?.myCalendarChannels ?? [];
 
   const messageChannel = messageChannels[0];
   const calendarChannel = calendarChannels[0];
@@ -105,13 +94,18 @@ export const SettingsAccountsConfiguration = () => {
 
   if (showEmailStep) {
     return (
-      <SettingsAccountsConfigurationStepEmail
-        messageChannel={messageChannel}
-        hasNextStep={isDefined(calendarChannel)}
-        isSubmitting={isSubmitting}
-        onNext={handleNext}
-        onAddAccount={handleAddAccount}
-      />
+      <>
+        <SettingsAccountsConfigurationSelectedMessageChannelEffect
+          messageChannel={messageChannel}
+        />
+        <SettingsAccountsConfigurationStepEmail
+          messageChannel={messageChannel}
+          hasNextStep={isDefined(calendarChannel)}
+          isSubmitting={isSubmitting}
+          onNext={handleNext}
+          onAddAccount={handleAddAccount}
+        />
+      </>
     );
   }
 

@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useDebouncedCallback } from 'use-debounce';
 
-import { CoreObjectNameSingular } from '@/object-metadata/types/CoreObjectNameSingular';
+import { CoreObjectNameSingular, SettingsPath } from 'twenty-shared/types';
 import { useFindOneRecord } from '@/object-record/hooks/useFindOneRecord';
 import { useImpersonationAuth } from '@/settings/admin-panel/hooks/useImpersonationAuth';
 import { SettingsPageContainer } from '@/settings/components/SettingsPageContainer';
@@ -16,7 +16,6 @@ import { activeTabIdComponentState } from '@/ui/layout/tab-list/states/activeTab
 import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { t } from '@lingui/core/macro';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
-import { SettingsPath } from 'twenty-shared/types';
 import { getSettingsPath } from 'twenty-shared/utils';
 import { IconInfoCircle, IconLockOpen } from 'twenty-ui/display';
 import { useNavigateSettings } from '~/hooks/useNavigateSettings';
@@ -28,10 +27,11 @@ import { MemberInfosTab } from '@/settings/members/components/MemberInfosTab';
 import { MemberPermissionsTab } from '@/settings/members/components/MemberPermissionsTab';
 import { useWorkspaceMemberRoles } from '@/settings/members/hooks/useWorkspaceMemberRoles';
 import { type WorkspaceMember } from '@/workspace-member/types/WorkspaceMember';
+import { useMutation } from '@apollo/client/react';
 import {
   PermissionFlagType,
-  useDeleteUserWorkspaceMutation,
-  useImpersonateMutation,
+  DeleteUserWorkspaceDocument,
+  ImpersonateDocument,
 } from '~/generated-metadata/graphql';
 
 const SETTINGS_WORKSPACE_MEMBER_TABS = {
@@ -51,7 +51,7 @@ export const SettingsWorkspaceMember = () => {
   const { openModal, closeModal } = useModal();
   const currentWorkspace = useAtomStateValue(currentWorkspaceState);
   const { executeImpersonationAuth } = useImpersonationAuth();
-  const [impersonate] = useImpersonateMutation();
+  const [impersonate] = useMutation(ImpersonateDocument);
   const isImpersonating = useAtomStateValue(isImpersonatingState);
   const canImpersonate =
     useHasPermissionFlag(PermissionFlagType.IMPERSONATE) && !isImpersonating;
@@ -82,8 +82,9 @@ export const SettingsWorkspaceMember = () => {
 
   const { updateOneRecord } = useUpdateOneRecord();
 
-  const [deleteUserFromWorkspace, { loading: isDeleting }] =
-    useDeleteUserWorkspaceMutation();
+  const [deleteUserFromWorkspace, { loading: isDeleting }] = useMutation(
+    DeleteUserWorkspaceDocument,
+  );
 
   const debouncedUpdateName = useDebouncedCallback(
     async (firstName: string, lastName: string) => {
@@ -219,7 +220,7 @@ export const SettingsWorkspaceMember = () => {
           </SettingsPageContainer>
 
           <ConfirmationModal
-            modalId={DELETE_MEMBER_MODAL_ID}
+            modalInstanceId={DELETE_MEMBER_MODAL_ID}
             title={t`Remove member from workspace`}
             subtitle={t`This action cannot be undone. This will permanently remove this member from this workspace and remove them from all their assignments.`}
             onConfirmClick={handleDeleteMember}

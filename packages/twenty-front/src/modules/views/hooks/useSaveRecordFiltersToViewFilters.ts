@@ -1,8 +1,10 @@
+import { contextStoreCurrentViewIdComponentState } from '@/context-store/states/contextStoreCurrentViewIdComponentState';
 import { currentRecordFiltersComponentState } from '@/object-record/record-filter/states/currentRecordFiltersComponentState';
 import { useAtomComponentStateCallbackState } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateCallbackState';
+import { useAtomComponentStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomComponentStateValue';
 import { usePerformViewFilterAPIPersist } from '@/views/hooks/internal/usePerformViewFilterAPIPersist';
 import { useCanPersistViewChanges } from '@/views/hooks/useCanPersistViewChanges';
-import { useGetCurrentViewOnly } from '@/views/hooks/useGetCurrentViewOnly';
+import { viewsSelector } from '@/views/states/selectors/viewsSelector';
 import { getViewFiltersToCreate } from '@/views/utils/getViewFiltersToCreate';
 import { getViewFiltersToDelete } from '@/views/utils/getViewFiltersToDelete';
 import { getViewFiltersToUpdate } from '@/views/utils/getViewFiltersToUpdate';
@@ -19,7 +21,9 @@ export const useSaveRecordFiltersToViewFilters = () => {
     performViewFilterAPIDelete,
   } = usePerformViewFilterAPIPersist();
 
-  const { currentView } = useGetCurrentViewOnly();
+  const contextStoreCurrentViewId = useAtomComponentStateValue(
+    contextStoreCurrentViewIdComponentState,
+  );
 
   const currentRecordFiltersCallbackState = useAtomComponentStateCallbackState(
     currentRecordFiltersComponentState,
@@ -28,6 +32,16 @@ export const useSaveRecordFiltersToViewFilters = () => {
   const store = useStore();
 
   const saveRecordFiltersToViewFilters = useCallback(async () => {
+    const views = store.get(viewsSelector.atom);
+
+    const currentView = views.find(
+      (view) => view.id === contextStoreCurrentViewId,
+    );
+
+    if (!isDefined(currentView)) {
+      return;
+    }
+
     if (!canPersistChanges || !isDefined(currentView)) {
       return;
     }
@@ -110,11 +124,11 @@ export const useSaveRecordFiltersToViewFilters = () => {
   }, [
     store,
     canPersistChanges,
-    currentView,
     currentRecordFiltersCallbackState,
     performViewFilterAPICreate,
     performViewFilterAPIUpdate,
     performViewFilterAPIDelete,
+    contextStoreCurrentViewId,
   ]);
 
   return {

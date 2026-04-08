@@ -7,7 +7,10 @@ import { billingState } from '@/client-config/states/billingState';
 import { supportChatState } from '@/client-config/states/supportChatState';
 import { usePermissionFlagMap } from '@/settings/roles/hooks/usePermissionFlagMap';
 import { getDocumentationUrl } from '@/support/utils/getDocumentationUrl';
-import { type NavigationDrawerItemIndentationLevel } from '@/ui/navigation/navigation-drawer/components/NavigationDrawerItem';
+import {
+  type NavigationDrawerItemIndentationLevel,
+  type NavigationDrawerItemModifier,
+} from '@/ui/navigation/navigation-drawer/components/NavigationDrawerItem';
 import { useAtomStateValue } from '@/ui/utilities/state/jotai/hooks/useAtomStateValue';
 import { useIsFeatureEnabled } from '@/workspace/hooks/useIsFeatureEnabled';
 import { t } from '@lingui/core/macro';
@@ -57,8 +60,7 @@ export type SettingsNavigationItem = {
   isHidden?: boolean;
   subItems?: SettingsNavigationItem[];
   isAdvanced?: boolean;
-  soon?: boolean;
-  isNew?: boolean;
+  modifier?: NavigationDrawerItemModifier;
 };
 
 const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
@@ -73,9 +75,6 @@ const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
     (currentUser?.canImpersonate || currentUser?.canAccessFullAdminPanel) ??
     false;
   const isAIEnabled = useIsFeatureEnabled(FeatureFlagKey.IS_AI_ENABLED);
-  const isApplicationEnabled = useIsFeatureEnabled(
-    FeatureFlagKey.IS_APPLICATION_ENABLED,
-  );
   const isSupportChatConfigured =
     supportChat?.supportDriver === 'FRONT' &&
     isNonEmptyString(supportChat.supportFrontChatId);
@@ -176,10 +175,8 @@ const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
           label: t`Apps`,
           path: SettingsPath.Applications,
           Icon: IconPlug,
-          isHidden:
-            !isApplicationEnabled ||
-            !permissionMap[PermissionFlagType.WORKSPACE],
-          isNew: true,
+          isHidden: !permissionMap[PermissionFlagType.APPLICATIONS],
+          modifier: 'new',
         },
         {
           label: t`AI`,
@@ -187,7 +184,7 @@ const useSettingsNavigationItems = (): SettingsNavigationSection[] => {
           Icon: IconSparkles,
           isHidden:
             !isAIEnabled || !permissionMap[PermissionFlagType.WORKSPACE],
-          isNew: true,
+          modifier: 'new',
         },
         {
           label: t`Security`,

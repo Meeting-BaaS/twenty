@@ -3,10 +3,10 @@ import { v4 } from 'uuid';
 
 import { type FlatPageLayoutWidgetMaps } from 'src/engine/metadata-modules/flat-page-layout-widget/types/flat-page-layout-widget-maps.type';
 import { type FlatPageLayoutWidget } from 'src/engine/metadata-modules/flat-page-layout-widget/types/flat-page-layout-widget.type';
+import { type FlatViewFieldGroupMaps } from 'src/engine/metadata-modules/flat-view-field-group/types/flat-view-field-group-maps.type';
 import { DEFAULT_VIEW_FIELD_SIZE } from 'src/engine/metadata-modules/flat-view-field/constants/default-view-field-size.constant';
 import { type FlatViewFieldMaps } from 'src/engine/metadata-modules/flat-view-field/types/flat-view-field-maps.type';
 import { type FlatViewField } from 'src/engine/metadata-modules/flat-view-field/types/flat-view-field.type';
-import { type FlatViewFieldGroupMaps } from 'src/engine/metadata-modules/flat-view-field-group/types/flat-view-field-group-maps.type';
 import { type FlatViewMaps } from 'src/engine/metadata-modules/flat-view/types/flat-view-maps.type';
 import { type FieldsConfigurationDTO } from 'src/engine/metadata-modules/page-layout-widget/dtos/fields-configuration.dto';
 import { WidgetConfigurationType } from 'src/engine/metadata-modules/page-layout-widget/enums/widget-configuration-type.type';
@@ -39,14 +39,38 @@ const getMatchingFieldsWidgets = ({
     .filter(isDefined)
     .filter(
       (widget) =>
-        !isDefined(widget.deletedAt) &&
+        widget.isActive &&
         widget.type === WidgetType.FIELDS &&
         widget.objectMetadataUniversalIdentifier ===
           objectMetadataUniversalIdentifier &&
         isFieldsWidgetConfiguration(widget.configuration) &&
         isDefined(widget.configuration.viewId) &&
-        isDefined(widget.configuration.newFieldDefaultConfiguration),
+        isDefined(widget.configuration.newFieldDefaultVisibility),
     );
+
+const findLastViewFieldGroupId = ({
+  viewId,
+  flatViewFieldGroupMaps,
+}: {
+  viewId: string;
+  flatViewFieldGroupMaps: FlatViewFieldGroupMaps;
+}): string | null => {
+  const groupsForView = Object.values(
+    flatViewFieldGroupMaps.byUniversalIdentifier,
+  )
+    .filter(isDefined)
+    .filter((group) => group.isActive && group.viewId === viewId);
+
+  if (groupsForView.length === 0) {
+    return null;
+  }
+
+  const lastGroup = groupsForView.reduce((maxGroup, group) =>
+    group.position > maxGroup.position ? group : maxGroup,
+  );
+
+  return lastGroup.id;
+};
 
 const computeNextPosition = ({
   viewId,
@@ -63,7 +87,7 @@ const computeNextPosition = ({
     .filter(isDefined)
     .filter(
       (viewField: FlatViewField) =>
-        !isDefined(viewField.deletedAt) && viewField.viewId === viewId,
+        viewField.isActive && viewField.viewId === viewId,
     )
     .filter(
       (viewField: FlatViewField) =>
@@ -127,8 +151,7 @@ export const computeFlatViewFieldsFromFieldsWidgets = ({
       const configuration = widget.configuration;
 
       const viewId = configuration.viewId!;
-      const { isVisible, viewFieldGroupId } =
-        configuration.newFieldDefaultConfiguration!;
+      const isVisible = configuration.newFieldDefaultVisibility!;
 
       const viewUniversalIdentifier =
         flatViewMaps.universalIdentifierById[viewId] ?? null;
@@ -136,6 +159,11 @@ export const computeFlatViewFieldsFromFieldsWidgets = ({
       if (!isDefined(viewUniversalIdentifier)) {
         continue;
       }
+
+      const viewFieldGroupId = findLastViewFieldGroupId({
+        viewId,
+        flatViewFieldGroupMaps,
+      });
 
       const viewFieldGroupUniversalIdentifier = isDefined(viewFieldGroupId)
         ? (flatViewFieldGroupMaps.universalIdentifierById[viewFieldGroupId] ??
@@ -171,6 +199,8 @@ export const computeFlatViewFieldsFromFieldsWidgets = ({
           size: DEFAULT_VIEW_FIELD_SIZE,
           position,
           aggregateOperation: null,
+          isActive: true,
+          universalOverrides: null,
           createdAt: now,
           updatedAt: now,
           deletedAt: null,

@@ -1,20 +1,20 @@
 import { Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 
 import { Command, CommandRunner, Option } from 'nest-commander';
+import { Repository } from 'typeorm';
 
+import { CalendarChannelSyncStage } from 'twenty-shared/types';
 import { InjectMessageQueue } from 'src/engine/core-modules/message-queue/decorators/message-queue.decorator';
 import { MessageQueue } from 'src/engine/core-modules/message-queue/message-queue.constants';
 import { MessageQueueService } from 'src/engine/core-modules/message-queue/services/message-queue.service';
+import { CalendarChannelEntity } from 'src/engine/metadata-modules/calendar-channel/entities/calendar-channel.entity';
 import { GlobalWorkspaceOrmManager } from 'src/engine/twenty-orm/global-workspace-datasource/global-workspace-orm.manager';
 import { buildSystemAuthContext } from 'src/engine/twenty-orm/utils/build-system-auth-context.util';
 import {
   CalendarEventListFetchJob,
   type CalendarEventListFetchJobData,
 } from 'src/modules/calendar/calendar-event-import-manager/jobs/calendar-event-list-fetch.job';
-import {
-  CalendarChannelSyncStage,
-  type CalendarChannelWorkspaceEntity,
-} from 'src/modules/calendar/common/standard-objects/calendar-channel.workspace-entity';
 
 type CalendarTriggerEventListFetchCommandOptions = {
   workspaceId: string;
@@ -33,6 +33,8 @@ export class CalendarTriggerEventListFetchCommand extends CommandRunner {
 
   constructor(
     private readonly globalWorkspaceOrmManager: GlobalWorkspaceOrmManager,
+    @InjectRepository(CalendarChannelEntity)
+    private readonly calendarChannelRepository: Repository<CalendarChannelEntity>,
     @InjectMessageQueue(MessageQueue.calendarQueue)
     private readonly messageQueueService: MessageQueueService,
   ) {
@@ -52,23 +54,14 @@ export class CalendarTriggerEventListFetchCommand extends CommandRunner {
     const authContext = buildSystemAuthContext(workspaceId);
 
     await this.globalWorkspaceOrmManager.executeInWorkspaceContext(async () => {
-      const calendarChannelRepository =
-        await this.globalWorkspaceOrmManager.getRepository<CalendarChannelWorkspaceEntity>(
+      const calendarChannels = await this.calendarChannelRepository.find({
+        where: {
+          isSyncEnabled: true,
+          syncStage: CalendarChannelSyncStage.CALENDAR_EVENT_LIST_FETCH_PENDING,
+          ...(calendarChannelId ? { id: calendarChannelId } : {}),
           workspaceId,
-          'calendarChannel',
-        );
-
-      const whereCondition: Record<string, unknown> = {
-        isSyncEnabled: true,
-        syncStage: CalendarChannelSyncStage.CALENDAR_EVENT_LIST_FETCH_PENDING,
-      };
-
-      if (calendarChannelId) {
-        whereCondition.id = calendarChannelId;
-      }
-
-      const calendarChannels =
-        await calendarChannelRepository.find(whereCondition);
+        },
+      });
 
       if (calendarChannels.length === 0) {
         this.logger.warn(
@@ -83,11 +76,14 @@ export class CalendarTriggerEventListFetchCommand extends CommandRunner {
       );
 
       for (const calendarChannel of calendarChannels) {
-        await calendarChannelRepository.update(calendarChannel.id, {
-          syncStage:
-            CalendarChannelSyncStage.CALENDAR_EVENT_LIST_FETCH_SCHEDULED,
-          syncStageStartedAt: new Date().toISOString(),
-        });
+        await this.calendarChannelRepository.update(
+          { id: calendarChannel.id, workspaceId },
+          {
+            syncStage:
+              CalendarChannelSyncStage.CALENDAR_EVENT_LIST_FETCH_SCHEDULED,
+            syncStageStartedAt: new Date().toISOString(),
+          },
+        );
 
         await this.messageQueueService.add<CalendarEventListFetchJobData>(
           CalendarEventListFetchJob.name,
