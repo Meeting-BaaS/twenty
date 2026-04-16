@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import { useEffect, useState } from 'react';
 import { defineFrontComponent } from 'twenty-sdk';
-import { Callout, H2Title, Status, themeCssVariables } from 'twenty-sdk/ui';
 
 type RecordingPreference = 'RECORD_ALL' | 'RECORD_ORGANIZED' | 'RECORD_NONE';
 
@@ -19,25 +18,47 @@ type CalendarChannel = {
 const StyledContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${themeCssVariables.spacing[4]};
+  gap: 16px;
   width: 100%;
+`;
+
+const StyledSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const StyledHeading = styled.h2`
+  color: #1f2937;
+  font-family: Inter, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const StyledSectionDescription = styled.p`
+  color: #6b7280;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
 `;
 
 const StyledCard = styled.div`
   align-items: center;
-  background: ${themeCssVariables.background.primary};
-  border: 1px solid ${themeCssVariables.border.color.light};
-  border-radius: ${themeCssVariables.border.radius.sm};
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   display: flex;
-  gap: ${themeCssVariables.spacing[3]};
-  padding: ${themeCssVariables.spacing[4]};
+  gap: 12px;
+  padding: 16px;
 `;
 
 const StyledIconContainer = styled.div`
   align-items: center;
-  background: ${themeCssVariables.background.tertiary};
-  border-radius: ${themeCssVariables.border.radius.sm};
-  color: ${themeCssVariables.font.color.secondary};
+  background: #f3f4f6;
+  border-radius: 8px;
+  color: #4b5563;
   display: flex;
   flex-shrink: 0;
   height: 40px;
@@ -54,45 +75,60 @@ const StyledTextContainer = styled.div`
 `;
 
 const StyledTitle = styled.span`
-  color: ${themeCssVariables.font.color.primary};
-  font-family: ${themeCssVariables.font.family};
-  font-size: ${themeCssVariables.font.size.md};
-  font-weight: ${themeCssVariables.font.weight.medium};
+  color: #1f2937;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
 `;
 
 const StyledDescription = styled.span`
-  color: ${themeCssVariables.font.color.tertiary};
-  font-family: ${themeCssVariables.font.family};
-  font-size: ${themeCssVariables.font.size.sm};
+  color: #6b7280;
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+`;
+
+const StyledStatus = styled.span<{ tone: 'green' | 'red' }>`
+  align-items: center;
+  background: ${({ tone }) => (tone === 'green' ? '#dcfce7' : '#fee2e2')};
+  border-radius: 999px;
+  color: ${({ tone }) => (tone === 'green' ? '#166534' : '#991b1b')};
+  display: inline-flex;
+  flex-shrink: 0;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  height: 28px;
+  padding: 0 10px;
+  white-space: nowrap;
 `;
 
 const StyledRadioGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${themeCssVariables.spacing[2]};
+  gap: 8px;
 `;
 
 const StyledRadioLabel = styled.label<{ selected: boolean }>`
   align-items: center;
   background: ${({ selected }) =>
-    selected ? themeCssVariables.accent.accent1 : themeCssVariables.background.primary};
+    selected ? '#eff6ff' : '#ffffff'};
   border: 1px solid
     ${({ selected }) =>
-      selected ? themeCssVariables.accent.primary : themeCssVariables.border.color.light};
-  border-radius: ${themeCssVariables.border.radius.sm};
+      selected ? '#2563eb' : '#e5e7eb'};
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
-  gap: ${themeCssVariables.spacing[3]};
-  padding: ${themeCssVariables.spacing[3]} ${themeCssVariables.spacing[4]};
+  gap: 12px;
+  padding: 12px 16px;
   transition: all 0.15s ease;
 
   &:hover {
-    border-color: ${themeCssVariables.accent.primary};
+    border-color: #2563eb;
   }
 `;
 
 const StyledRadioInput = styled.input`
-  accent-color: ${themeCssVariables.accent.primary};
+  accent-color: #2563eb;
   cursor: pointer;
   height: 16px;
   margin: 0;
@@ -106,59 +142,82 @@ const StyledRadioTextContainer = styled.div`
 `;
 
 const StyledRadioTitle = styled.span`
-  color: ${themeCssVariables.font.color.primary};
-  font-family: ${themeCssVariables.font.family};
-  font-size: ${themeCssVariables.font.size.md};
-  font-weight: ${themeCssVariables.font.weight.medium};
+  color: #1f2937;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
 `;
 
 const StyledRadioDescription = styled.span`
-  color: ${themeCssVariables.font.color.tertiary};
-  font-family: ${themeCssVariables.font.family};
-  font-size: ${themeCssVariables.font.size.xs};
+  color: #6b7280;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
 `;
 
 const StyledFieldGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${themeCssVariables.spacing[3]};
+  gap: 12px;
 `;
 
 const StyledFieldLabel = styled.label`
-  color: ${themeCssVariables.font.color.primary};
-  font-family: ${themeCssVariables.font.family};
-  font-size: ${themeCssVariables.font.size.sm};
-  font-weight: ${themeCssVariables.font.weight.medium};
+  color: #1f2937;
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
 `;
 
 const StyledTextInput = styled.input`
-  background: ${themeCssVariables.background.primary};
-  border: 1px solid ${themeCssVariables.border.color.light};
-  border-radius: ${themeCssVariables.border.radius.sm};
-  color: ${themeCssVariables.font.color.primary};
-  font-family: ${themeCssVariables.font.family};
-  font-size: ${themeCssVariables.font.size.md};
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #111827;
+  font-family: Inter, sans-serif;
+  font-size: 14px;
   margin-top: 4px;
   outline: none;
   padding: 10px 12px;
   width: 100%;
 
   &:focus {
-    border-color: ${themeCssVariables.accent.primary};
+    border-color: #2563eb;
   }
 
   &::placeholder {
-    color: ${themeCssVariables.font.color.light};
+    color: #9ca3af;
   }
 `;
 
 const StyledCharCount = styled.span<{ over: boolean }>`
-  color: ${({ over }) =>
-    over ? themeCssVariables.color.red : themeCssVariables.font.color.tertiary};
-  font-family: ${themeCssVariables.font.family};
-  font-size: ${themeCssVariables.font.size.xxs};
+  color: ${({ over }) => (over ? '#dc2626' : '#6b7280')};
+  font-family: Inter, sans-serif;
+  font-size: 11px;
   margin-top: 2px;
   text-align: right;
+`;
+
+const StyledCallout = styled.div<{ variant: 'warning' | 'info' }>`
+  background: ${({ variant }) => (variant === 'warning' ? '#fffbeb' : '#eff6ff')};
+  border: 1px solid ${({ variant }) => (variant === 'warning' ? '#fcd34d' : '#93c5fd')};
+  border-radius: 8px;
+  color: #1f2937;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+`;
+
+const StyledCalloutTitle = styled.span`
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+`;
+
+const StyledCalloutDescription = styled.span`
+  color: #4b5563;
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
 `;
 
 const PREFERENCE_OPTIONS: Array<{
@@ -294,7 +353,10 @@ const MeetingBaasSettings = () => {
   if (isLoading) {
     return (
       <StyledContainer>
-        <H2Title title="Meeting Recording" description="Loading settings..." />
+        <StyledSection>
+          <StyledHeading>Meeting Recording</StyledHeading>
+          <StyledSectionDescription>Loading settings...</StyledSectionDescription>
+        </StyledSection>
       </StyledContainer>
     );
   }
@@ -302,11 +364,13 @@ const MeetingBaasSettings = () => {
   return (
     <StyledContainer>
       {/* API Key Status */}
-      <div>
-        <H2Title
-          title="Meeting BaaS Connection"
-          description="Meeting BaaS records your meetings and syncs transcripts into Twenty"
-        />
+      <StyledSection>
+        <div>
+          <StyledHeading>Meeting BaaS Connection</StyledHeading>
+          <StyledSectionDescription>
+            Meeting BaaS records your meetings and syncs transcripts into Twenty
+          </StyledSectionDescription>
+        </div>
         <StyledCard>
           <StyledIconContainer>
             <span style={{ fontSize: 20 }}>🎥</span>
@@ -319,28 +383,32 @@ const MeetingBaasSettings = () => {
                 : 'No API key configured — add MEETING_BAAS_API_KEY in app variables'}
             </StyledDescription>
           </StyledTextContainer>
-          <Status
-            color={apiKeyConfigured ? 'green' : 'red'}
-            text={apiKeyConfigured ? 'Connected' : 'Not Set'}
-          />
+          <StyledStatus tone={apiKeyConfigured ? 'green' : 'red'}>
+            {apiKeyConfigured ? 'Connected' : 'Not Set'}
+          </StyledStatus>
         </StyledCard>
-      </div>
+      </StyledSection>
 
       {/* Calendar Connection Banner */}
       {hasCalendar === false && (
-        <Callout
-          variant="warning"
-          title="No calendar connected"
-          description="Connect your Google or Microsoft calendar in Settings → Accounts to enable automatic meeting recording."
-        />
+        <StyledCallout variant="warning">
+          <StyledCalloutTitle>No calendar connected</StyledCalloutTitle>
+          <StyledCalloutDescription>
+            Connect your Google or Microsoft calendar in Settings {'->'} Accounts to enable
+            automatic meeting recording.
+          </StyledCalloutDescription>
+        </StyledCallout>
       )}
 
       {/* Recording Preference */}
-      <div>
-        <H2Title
-          title="Recording Preference"
-          description="Choose which meetings are automatically recorded when they have a conference link"
-        />
+      <StyledSection>
+        <div>
+          <StyledHeading>Recording Preference</StyledHeading>
+          <StyledSectionDescription>
+            Choose which meetings are automatically recorded when they have a conference
+            link
+          </StyledSectionDescription>
+        </div>
         <StyledRadioGroup>
           {PREFERENCE_OPTIONS.map((option) => (
             <StyledRadioLabel key={option.value} selected={preference === option.value}>
@@ -359,14 +427,16 @@ const MeetingBaasSettings = () => {
             </StyledRadioLabel>
           ))}
         </StyledRadioGroup>
-      </div>
+      </StyledSection>
 
       {/* Bot Customization */}
-      <div>
-        <H2Title
-          title="Bot Customization"
-          description="Customize how the recording bot appears when it joins your meetings"
-        />
+      <StyledSection>
+        <div>
+          <StyledHeading>Bot Customization</StyledHeading>
+          <StyledSectionDescription>
+            Customize how the recording bot appears when it joins your meetings
+          </StyledSectionDescription>
+        </div>
         <StyledFieldGroup>
           <div>
             <StyledFieldLabel>Bot name</StyledFieldLabel>
@@ -397,20 +467,22 @@ const MeetingBaasSettings = () => {
             </StyledCharCount>
           </div>
         </StyledFieldGroup>
-      </div>
+      </StyledSection>
 
       {preference !== 'RECORD_NONE' && !apiKeyConfigured && (
-        <Callout
-          variant="info"
-          title="API key required"
-          description="Recording is enabled but no API key is set. Add MEETING_BAAS_API_KEY in the app's variables to start recording."
-        />
+        <StyledCallout variant="info">
+          <StyledCalloutTitle>API key required</StyledCalloutTitle>
+          <StyledCalloutDescription>
+            Recording is enabled but no API key is set. Add `MEETING_BAAS_API_KEY` in
+            the app variables to start recording.
+          </StyledCalloutDescription>
+        </StyledCallout>
       )}
     </StyledContainer>
   );
 };
 
-export const SETTINGS_FRONT_COMPONENT_ID = 'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b';
+export const SETTINGS_FRONT_COMPONENT_ID = '7f2c17b4-2cd2-5447-b7d1-83ef12040837';
 
 export default defineFrontComponent({
   universalIdentifier: SETTINGS_FRONT_COMPONENT_ID,

@@ -4,7 +4,7 @@ import {
   STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS,
 } from 'twenty-sdk';
 
-export const BOT_ENTRY_MESSAGE_FIELD_ID = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
+export const BOT_ENTRY_MESSAGE_FIELD_ID = '5d9be02b-138b-5437-9184-d72276f51f3d';
 
 export default defineField({
   universalIdentifier: BOT_ENTRY_MESSAGE_FIELD_ID,

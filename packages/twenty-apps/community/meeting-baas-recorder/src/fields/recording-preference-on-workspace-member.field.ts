@@ -4,7 +4,7 @@ import {
   STANDARD_OBJECT_UNIVERSAL_IDENTIFIERS,
 } from 'twenty-sdk';
 
-export const RECORDING_PREFERENCE_FIELD_ID = 'd4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a';
+export const RECORDING_PREFERENCE_FIELD_ID = '082e8dd7-a365-5b6b-8d9b-1780f36154b3';
 
 export default defineField({
   universalIdentifier: RECORDING_PREFERENCE_FIELD_ID,
@@ -18,21 +18,21 @@ export default defineField({
   defaultValue: "'RECORD_NONE'",
   options: [
     {
-      id: 'e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b',
+      id: 'dd08b14a-c5f2-5eb6-9b4b-e579437a4f6f',
       color: 'green',
       label: 'Record All',
       value: 'RECORD_ALL',
       position: 1,
     },
     {
-      id: 'f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c',
+      id: 'e880d3db-9b3b-58c2-af65-a8e0be61083d',
       color: 'yellow',
       label: 'Organizer Only',
       value: 'RECORD_ORGANIZED',
       position: 2,
     },
     {
-      id: 'a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d',
+      id: 'e9c62cd0-26ab-5241-811d-545a9d0180a6',
       color: 'gray',
       label: 'None',
       value: 'RECORD_NONE',

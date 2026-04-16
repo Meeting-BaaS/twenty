@@ -2,15 +2,16 @@ import { defineApplication } from 'twenty-sdk';
 import { DEFAULT_ROLE_ID } from './src/roles/default.role';
 
 export default defineApplication({
-  universalIdentifier: 'b7e3a1f2-8d4c-4e6a-9f2b-1c5d7e8a3b4f',
+  universalIdentifier: 'c522c3c7-cff8-5c08-8c87-d1481adbd4a9',
   displayName: 'Meeting BaaS Recorder',
   description: 'Record meetings via Meeting BaaS and sync recordings, transcripts, and participants into Twenty.',
   icon: 'IconVideo',
   defaultRoleUniversalIdentifier: DEFAULT_ROLE_ID,
-  settingsCustomTabFrontComponentUniversalIdentifier: 'e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b',
+  settingsCustomTabFrontComponentUniversalIdentifier:
+    '7f2c17b4-2cd2-5447-b7d1-83ef12040837',
   applicationVariables: {
     MEETING_BAAS_API_KEY: {
-      universalIdentifier: 'c1d2e3f4-5a6b-7c8d-9e0f-a1b2c3d4e5f6',
+      universalIdentifier: '32cd6297-bbd3-5beb-a0f6-1f5662590f66',
       description: 'Meeting BaaS API key for authenticating requests and verifying webhooks',
       isSecret: true,
       value: '',

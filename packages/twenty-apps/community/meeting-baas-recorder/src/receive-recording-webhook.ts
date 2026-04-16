@@ -3,7 +3,7 @@ import type { ProcessResult } from './types';
 import { WebhookHandler } from './webhook-handler';
 
 export default defineLogicFunction({
-  universalIdentifier: '3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d',
+  universalIdentifier: '0c0c376e-3d0a-5348-b6a7-3b4f35b33f9e',
   name: 'receive-recording-webhook',
   description:
     'Receives Meeting BaaS webhooks when recordings complete, and stores them in Twenty.',
