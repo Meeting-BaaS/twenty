@@ -1,12 +1,15 @@
 import styled from '@emotion/styled';
 import { useEffect, useState } from 'react';
 import { defineFrontComponent } from 'twenty-sdk';
+import { Callout, H2Title, Status, themeCssVariables } from 'twenty-sdk/ui';
 
 type RecordingPreference = 'RECORD_ALL' | 'RECORD_ORGANIZED' | 'RECORD_NONE';
 
 type WorkspaceMember = {
   id: string;
   recordingPreference?: RecordingPreference;
+  botName?: string;
+  botEntryMessage?: string;
 };
 
 type CalendarChannel = {
@@ -16,41 +19,25 @@ type CalendarChannel = {
 const StyledContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: ${themeCssVariables.spacing[4]};
   width: 100%;
-`;
-
-const StyledSectionTitle = styled.h3`
-  color: #333;
-  font-family: 'Inter', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 4px 0;
-`;
-
-const StyledSectionSubtitle = styled.p`
-  color: #818181;
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  font-weight: 400;
-  margin: 0 0 12px 0;
 `;
 
 const StyledCard = styled.div`
   align-items: center;
-  background: #fff;
-  border: 1px solid #ebebeb;
-  border-radius: 8px;
+  background: ${themeCssVariables.background.primary};
+  border: 1px solid ${themeCssVariables.border.color.light};
+  border-radius: ${themeCssVariables.border.radius.sm};
   display: flex;
-  gap: 12px;
-  padding: 16px;
+  gap: ${themeCssVariables.spacing[3]};
+  padding: ${themeCssVariables.spacing[4]};
 `;
 
 const StyledIconContainer = styled.div`
   align-items: center;
-  background: #f5f5f5;
-  border-radius: 8px;
-  color: #666;
+  background: ${themeCssVariables.background.tertiary};
+  border-radius: ${themeCssVariables.border.radius.sm};
+  color: ${themeCssVariables.font.color.secondary};
   display: flex;
   flex-shrink: 0;
   height: 40px;
@@ -67,57 +54,45 @@ const StyledTextContainer = styled.div`
 `;
 
 const StyledTitle = styled.span`
-  color: #333;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
+  color: ${themeCssVariables.font.color.primary};
+  font-family: ${themeCssVariables.font.family};
+  font-size: ${themeCssVariables.font.size.md};
+  font-weight: ${themeCssVariables.font.weight.medium};
 `;
 
 const StyledDescription = styled.span`
-  color: #818181;
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-`;
-
-const StyledStatusBadge = styled.span<{ connected: boolean }>`
-  align-items: center;
-  background: ${({ connected }) => (connected ? '#10b981' : '#ef4444')};
-  border-radius: 4px;
-  color: #fff;
-  display: inline-flex;
-  flex-shrink: 0;
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  height: 32px;
-  padding: 0 12px;
-  white-space: nowrap;
+  color: ${themeCssVariables.font.color.tertiary};
+  font-family: ${themeCssVariables.font.family};
+  font-size: ${themeCssVariables.font.size.sm};
 `;
 
 const StyledRadioGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: ${themeCssVariables.spacing[2]};
 `;
 
 const StyledRadioLabel = styled.label<{ selected: boolean }>`
   align-items: center;
-  background: ${({ selected }) => (selected ? '#f0f0ff' : '#fff')};
-  border: 1px solid ${({ selected }) => (selected ? '#5e5adb' : '#ebebeb')};
-  border-radius: 8px;
+  background: ${({ selected }) =>
+    selected ? themeCssVariables.accent.accent1 : themeCssVariables.background.primary};
+  border: 1px solid
+    ${({ selected }) =>
+      selected ? themeCssVariables.accent.primary : themeCssVariables.border.color.light};
+  border-radius: ${themeCssVariables.border.radius.sm};
   cursor: pointer;
   display: flex;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: ${themeCssVariables.spacing[3]};
+  padding: ${themeCssVariables.spacing[3]} ${themeCssVariables.spacing[4]};
   transition: all 0.15s ease;
 
   &:hover {
-    border-color: #5e5adb;
+    border-color: ${themeCssVariables.accent.primary};
   }
 `;
 
 const StyledRadioInput = styled.input`
-  accent-color: #5e5adb;
+  accent-color: ${themeCssVariables.accent.primary};
   cursor: pointer;
   height: 16px;
   margin: 0;
@@ -131,29 +106,59 @@ const StyledRadioTextContainer = styled.div`
 `;
 
 const StyledRadioTitle = styled.span`
-  color: #333;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
+  color: ${themeCssVariables.font.color.primary};
+  font-family: ${themeCssVariables.font.family};
+  font-size: ${themeCssVariables.font.size.md};
+  font-weight: ${themeCssVariables.font.weight.medium};
 `;
 
 const StyledRadioDescription = styled.span`
-  color: #818181;
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
+  color: ${themeCssVariables.font.color.tertiary};
+  font-family: ${themeCssVariables.font.family};
+  font-size: ${themeCssVariables.font.size.xs};
 `;
 
-const StyledBanner = styled.div<{ variant: 'info' | 'warning' }>`
-  align-items: center;
-  background: ${({ variant }) => (variant === 'warning' ? '#fef3c7' : '#eff6ff')};
-  border: 1px solid ${({ variant }) => (variant === 'warning' ? '#f59e0b' : '#3b82f6')};
-  border-radius: 8px;
-  color: ${({ variant }) => (variant === 'warning' ? '#92400e' : '#1e40af')};
+const StyledFieldGroup = styled.div`
   display: flex;
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  gap: 8px;
-  padding: 12px 16px;
+  flex-direction: column;
+  gap: ${themeCssVariables.spacing[3]};
+`;
+
+const StyledFieldLabel = styled.label`
+  color: ${themeCssVariables.font.color.primary};
+  font-family: ${themeCssVariables.font.family};
+  font-size: ${themeCssVariables.font.size.sm};
+  font-weight: ${themeCssVariables.font.weight.medium};
+`;
+
+const StyledTextInput = styled.input`
+  background: ${themeCssVariables.background.primary};
+  border: 1px solid ${themeCssVariables.border.color.light};
+  border-radius: ${themeCssVariables.border.radius.sm};
+  color: ${themeCssVariables.font.color.primary};
+  font-family: ${themeCssVariables.font.family};
+  font-size: ${themeCssVariables.font.size.md};
+  margin-top: 4px;
+  outline: none;
+  padding: 10px 12px;
+  width: 100%;
+
+  &:focus {
+    border-color: ${themeCssVariables.accent.primary};
+  }
+
+  &::placeholder {
+    color: ${themeCssVariables.font.color.light};
+  }
+`;
+
+const StyledCharCount = styled.span<{ over: boolean }>`
+  color: ${({ over }) =>
+    over ? themeCssVariables.color.red : themeCssVariables.font.color.tertiary};
+  font-family: ${themeCssVariables.font.family};
+  font-size: ${themeCssVariables.font.size.xxs};
+  margin-top: 2px;
+  text-align: right;
 `;
 
 const PREFERENCE_OPTIONS: Array<{
@@ -188,16 +193,23 @@ const fetchCurrentWorkspaceMember = async (): Promise<WorkspaceMember> => {
 
 const updateWorkspaceMember = async (
   memberId: string,
-  recordingPreference: RecordingPreference,
+  fields: {
+    recordingPreference?: RecordingPreference;
+    botName?: string | null;
+    botEntryMessage?: string | null;
+  },
 ): Promise<void> => {
-  await fetch(`${process.env.TWENTY_API_URL}/rest/workspaceMembers/${memberId}`, {
+  const response = await fetch(`${process.env.TWENTY_API_URL}/rest/workspaceMembers/${memberId}`, {
     method: 'PATCH',
     headers: {
       Authorization: `Bearer ${process.env.TWENTY_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ recordingPreference }),
+    body: JSON.stringify(fields),
   });
+  if (!response.ok) {
+    throw new Error(`PATCH failed: ${response.status}`);
+  }
 };
 
 const fetchCalendarChannels = async (): Promise<CalendarChannel[]> => {
@@ -211,6 +223,8 @@ const fetchCalendarChannels = async (): Promise<CalendarChannel[]> => {
 const MeetingBaasSettings = () => {
   const [member, setMember] = useState<WorkspaceMember | null>(null);
   const [preference, setPreference] = useState<RecordingPreference>('RECORD_NONE');
+  const [botName, setBotName] = useState('');
+  const [botEntryMessage, setBotEntryMessage] = useState('');
   const [hasCalendar, setHasCalendar] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -222,6 +236,8 @@ const MeetingBaasSettings = () => {
       .then(([memberData, channels]) => {
         setMember(memberData);
         setPreference(memberData.recordingPreference ?? 'RECORD_NONE');
+        setBotName(memberData.botName ?? '');
+        setBotEntryMessage(memberData.botEntryMessage ?? '');
         setHasCalendar(channels.length > 0);
       })
       .catch(() => {
@@ -232,12 +248,44 @@ const MeetingBaasSettings = () => {
 
   const handlePreferenceChange = async (newPreference: RecordingPreference) => {
     if (!member || isSaving) return;
+    const previousPreference = preference;
     setIsSaving(true);
     setPreference(newPreference);
     try {
-      await updateWorkspaceMember(member.id, newPreference);
+      await updateWorkspaceMember(member.id, { recordingPreference: newPreference });
+      setMember({ ...member, recordingPreference: newPreference });
     } catch {
-      setPreference(member.recordingPreference ?? 'RECORD_NONE');
+      setPreference(previousPreference);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBotNameBlur = async () => {
+    if (!member || isSaving) return;
+    const trimmed = botName.trim();
+    if (trimmed === (member.botName ?? '')) return;
+    setIsSaving(true);
+    try {
+      await updateWorkspaceMember(member.id, { botName: trimmed || null });
+      setMember({ ...member, botName: trimmed || undefined });
+    } catch {
+      setBotName(member.botName ?? '');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEntryMessageBlur = async () => {
+    if (!member || isSaving) return;
+    const trimmed = botEntryMessage.trim().slice(0, 500);
+    if (trimmed === (member.botEntryMessage ?? '')) return;
+    setIsSaving(true);
+    try {
+      await updateWorkspaceMember(member.id, { botEntryMessage: trimmed || null });
+      setMember({ ...member, botEntryMessage: trimmed || undefined });
+    } catch {
+      setBotEntryMessage(member.botEntryMessage ?? '');
     } finally {
       setIsSaving(false);
     }
@@ -246,8 +294,7 @@ const MeetingBaasSettings = () => {
   if (isLoading) {
     return (
       <StyledContainer>
-        <StyledSectionTitle>Meeting Recording</StyledSectionTitle>
-        <StyledSectionSubtitle>Loading settings...</StyledSectionSubtitle>
+        <H2Title title="Meeting Recording" description="Loading settings..." />
       </StyledContainer>
     );
   }
@@ -256,10 +303,10 @@ const MeetingBaasSettings = () => {
     <StyledContainer>
       {/* API Key Status */}
       <div>
-        <StyledSectionTitle>Meeting BaaS Connection</StyledSectionTitle>
-        <StyledSectionSubtitle>
-          Meeting BaaS records your meetings and syncs transcripts into Twenty
-        </StyledSectionSubtitle>
+        <H2Title
+          title="Meeting BaaS Connection"
+          description="Meeting BaaS records your meetings and syncs transcripts into Twenty"
+        />
         <StyledCard>
           <StyledIconContainer>
             <span style={{ fontSize: 20 }}>🎥</span>
@@ -272,26 +319,28 @@ const MeetingBaasSettings = () => {
                 : 'No API key configured — add MEETING_BAAS_API_KEY in app variables'}
             </StyledDescription>
           </StyledTextContainer>
-          <StyledStatusBadge connected={apiKeyConfigured}>
-            {apiKeyConfigured ? '✓ Connected' : '✗ Not Set'}
-          </StyledStatusBadge>
+          <Status
+            color={apiKeyConfigured ? 'green' : 'red'}
+            text={apiKeyConfigured ? 'Connected' : 'Not Set'}
+          />
         </StyledCard>
       </div>
 
       {/* Calendar Connection Banner */}
       {hasCalendar === false && (
-        <StyledBanner variant="warning">
-          No calendar connected — connect your Google or Microsoft calendar in Settings → Accounts
-          to enable automatic meeting recording.
-        </StyledBanner>
+        <Callout
+          variant="warning"
+          title="No calendar connected"
+          description="Connect your Google or Microsoft calendar in Settings → Accounts to enable automatic meeting recording."
+        />
       )}
 
       {/* Recording Preference */}
       <div>
-        <StyledSectionTitle>Recording Preference</StyledSectionTitle>
-        <StyledSectionSubtitle>
-          Choose which meetings are automatically recorded when they have a conference link
-        </StyledSectionSubtitle>
+        <H2Title
+          title="Recording Preference"
+          description="Choose which meetings are automatically recorded when they have a conference link"
+        />
         <StyledRadioGroup>
           {PREFERENCE_OPTIONS.map((option) => (
             <StyledRadioLabel key={option.value} selected={preference === option.value}>
@@ -312,11 +361,50 @@ const MeetingBaasSettings = () => {
         </StyledRadioGroup>
       </div>
 
+      {/* Bot Customization */}
+      <div>
+        <H2Title
+          title="Bot Customization"
+          description="Customize how the recording bot appears when it joins your meetings"
+        />
+        <StyledFieldGroup>
+          <div>
+            <StyledFieldLabel>Bot name</StyledFieldLabel>
+            <StyledTextInput
+              type="text"
+              placeholder="Twenty CRM Recorder"
+              value={botName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBotName(e.target.value)}
+              onBlur={handleBotNameBlur}
+              disabled={isSaving}
+            />
+          </div>
+          <div>
+            <StyledFieldLabel>Entry message</StyledFieldLabel>
+            <StyledTextInput
+              type="text"
+              placeholder="Message posted in chat when the bot joins"
+              value={botEntryMessage}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setBotEntryMessage(e.target.value.slice(0, 500))
+              }
+              onBlur={handleEntryMessageBlur}
+              disabled={isSaving}
+              maxLength={500}
+            />
+            <StyledCharCount over={botEntryMessage.length >= 500}>
+              {botEntryMessage.length}/500
+            </StyledCharCount>
+          </div>
+        </StyledFieldGroup>
+      </div>
+
       {preference !== 'RECORD_NONE' && !apiKeyConfigured && (
-        <StyledBanner variant="info">
-          Recording is enabled but no API key is set. Add MEETING_BAAS_API_KEY in the app&apos;s
-          variables to start recording.
-        </StyledBanner>
+        <Callout
+          variant="info"
+          title="API key required"
+          description="Recording is enabled but no API key is set. Add MEETING_BAAS_API_KEY in the app's variables to start recording."
+        />
       )}
     </StyledContainer>
   );

@@ -182,6 +182,7 @@ export const syncBotRecording = async (
     platform: MeetingPlatform;
     calendarEventId?: string;
     workspaceMemberId?: string;
+    status?: 'COMPLETED' | 'FAILED' | 'IN_PROGRESS';
   },
   result: SyncResult,
 ): Promise<string | null> => {
@@ -194,7 +195,7 @@ export const syncBotRecording = async (
       date: recordingData.date,
       duration: durationMinutes,
       platform: recordingData.platform,
-      status: 'COMPLETED',
+      status: recordingData.status || 'COMPLETED',
       meetingUrl: recordingData.meetingUrl
         ? { primaryLinkLabel: 'Join Meeting', primaryLinkUrl: recordingData.meetingUrl, secondaryLinks: null }
         : null,

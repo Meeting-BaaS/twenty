@@ -8,11 +8,17 @@ const logger = createLogger('schedule-bot');
 
 type RecordingPreference = 'RECORD_ALL' | 'RECORD_ORGANIZED' | 'RECORD_NONE';
 
+type BotSettings = {
+  preference: RecordingPreference;
+  botName: string;
+  botEntryMessage: string;
+};
+
 const TWENTY_API_KEY = process.env.TWENTY_API_KEY ?? '';
 
-const fetchWorkspaceMemberPreference = async (
+const fetchWorkspaceMemberBotSettings = async (
   workspaceMemberId: string,
-): Promise<RecordingPreference> => {
+): Promise<BotSettings> => {
   try {
     const response = await axios({
       method: 'GET',
@@ -20,11 +26,31 @@ const fetchWorkspaceMemberPreference = async (
       url: `${getRestApiUrl()}/workspaceMembers/${workspaceMemberId}`,
     });
     const memberData = response.data?.data ?? response.data;
-    return (memberData?.recordingPreference as RecordingPreference) ?? 'RECORD_NONE';
+    return {
+      preference: (memberData?.recordingPreference as RecordingPreference) ?? 'RECORD_NONE',
+      botName: (memberData?.botName as string) || 'Twenty CRM Recorder',
+      botEntryMessage: (memberData?.botEntryMessage as string) || '',
+    };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    logger.warn(`Failed to fetch workspace member preference: ${msg}`);
-    return 'RECORD_NONE';
+    logger.warn(`Failed to fetch workspace member bot settings: ${msg}`);
+    return { preference: 'RECORD_NONE', botName: 'Twenty CRM Recorder', botEntryMessage: '' };
+  }
+};
+
+const fetchCalendarEventTitle = async (
+  calendarEventId: string,
+): Promise<string> => {
+  try {
+    const response = await axios({
+      method: 'GET',
+      headers: restHeaders(),
+      url: `${getRestApiUrl()}/calendarEvents/${calendarEventId}`,
+    });
+    const eventData = response.data?.data ?? response.data;
+    return (eventData?.title as string) || '';
+  } catch {
+    return '';
   }
 };
 
@@ -72,8 +98,8 @@ export const scheduleBot = async (
     return null;
   }
 
-  // Check recording preference
-  const preference = await fetchWorkspaceMemberPreference(ownership.workspaceMemberId);
+  // Check recording preference and bot settings
+  const { preference, botName, botEntryMessage } = await fetchWorkspaceMemberBotSettings(ownership.workspaceMemberId);
   if (preference === 'RECORD_NONE') {
     logger.debug(`Workspace member ${ownership.workspaceMemberName ?? ownership.workspaceMemberId} has recording disabled`);
     return null;
@@ -88,14 +114,21 @@ export const scheduleBot = async (
     }
   }
 
+  // Fetch calendar event title for recording metadata
+  const meetingTitle = await fetchCalendarEventTitle(calendarEventId);
+
   // Schedule the bot
   const client = new MeetingBaasApiClient(apiKey);
   const botId = await client.createScheduledBot({
     meetingUrl: conferenceUrl,
     joinAt: startsAt,
+    botName,
+    ...(botEntryMessage && { entryMessage: botEntryMessage }),
     extra: {
       calendarEventId,
       workspaceMemberId: ownership.workspaceMemberId,
+      meeting_url: conferenceUrl,
+      meeting_title: meetingTitle,
     },
   });
 

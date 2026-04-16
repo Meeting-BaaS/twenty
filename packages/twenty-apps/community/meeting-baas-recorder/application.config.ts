@@ -15,10 +15,5 @@ export default defineApplication({
       isSecret: true,
       value: '',
     },
-    AUTO_CREATE_CONTACTS: {
-      universalIdentifier: 'f4a5b6c7-8d9e-0f1a-2b3c-d4e5f6a7b8c9',
-      description: 'Whether to auto-create contacts for unknown participants (true/false)',
-      value: 'true',
-    },
   },
 });

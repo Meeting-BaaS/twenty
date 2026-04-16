@@ -6,7 +6,7 @@ import {
   isValidMeetingBaasPayload,
   verifyWebhookApiKey
 } from './webhook-validator';
-import { syncBotRecording } from './twenty-sync-service';
+import { detectPlatform, syncBotRecording } from './twenty-sync-service';
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -44,7 +44,44 @@ export class WebhookHandler {
       if (payload.event === WebhookEvent.FAILED) {
         const failedData = payload.data;
         this.logger.error(`bot failed: ${failedData.error_message} (${failedData.error_code})`);
-        throw new Error(`Meeting BaaS bot failed: ${failedData.error_message}`);
+
+        const extra = (payload.extra ?? {}) as Record<string, unknown>;
+        const calendarEventId = extra.calendarEventId as string | undefined;
+        const workspaceMemberId = extra.workspaceMemberId as string | undefined;
+        const meetingUrl = (extra.meeting_url as string) || '';
+        const meetingTitle = (extra.meeting_title as string) || '';
+
+        const failedSyncResult: SyncResult = {
+          recordingsProcessed: 0,
+          recordingsCreated: 0,
+          recordingsUpdated: 0,
+          errors: [],
+        };
+
+        const recordingId = await syncBotRecording(
+          {
+            botId: failedData.bot_id,
+            title: meetingTitle || `Failed recording — ${failedData.error_code}`,
+            date: new Date().toISOString(),
+            duration: 0,
+            transcript: `Bot failed: ${failedData.error_message} (${failedData.error_code})`,
+            mp4Url: '',
+            meetingUrl,
+            platform: detectPlatform(meetingUrl),
+            calendarEventId,
+            workspaceMemberId,
+            status: 'FAILED',
+          },
+          failedSyncResult,
+        );
+
+        if (recordingId) {
+          result.recordingId = recordingId;
+          this.logger.debug(`created FAILED recording id=${recordingId}`);
+        }
+
+        result.success = true;
+        return result;
       }
 
       if (payload.event === WebhookEvent.STATUS_CHANGE) {
@@ -56,7 +93,7 @@ export class WebhookHandler {
       // Transform webhook data
       const completedData = payload.data;
       const meetingBaasClient = new MeetingBaasApiClient(meetingBaasApiKey);
-      const recordingData = meetingBaasClient.transformWebhookData(
+      const recordingData = await meetingBaasClient.transformWebhookData(
         completedData,
         payload.extra ?? undefined,
       );
