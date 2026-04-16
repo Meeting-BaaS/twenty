@@ -329,11 +329,15 @@ export class ApplicationManifestMigrationService {
     }
 
     if (isDefined(role.permissionFlags) && role.permissionFlags.length > 0) {
+      const permissionFlagKeys = role.permissionFlags.map((flag) =>
+        typeof flag === 'string' ? flag : (flag as { flag: string }).flag,
+      );
+
       await this.permissionFlagService.upsertPermissionFlags({
         workspaceId,
         input: {
           roleId,
-          permissionFlagKeys: role.permissionFlags,
+          permissionFlagKeys,
         },
       });
     }

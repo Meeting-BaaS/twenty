@@ -62,6 +62,7 @@ export type ViewManifest = SyncableEntityOptions & {
   isCompact?: boolean;
   visibility?: ViewVisibility;
   openRecordIn?: ViewOpenRecordIn;
+  mainGroupByFieldMetadataUniversalIdentifier?: string;
   fields?: ViewFieldManifest[];
   filters?: ViewFilterManifest[];
   filterGroups?: ViewFilterGroupManifest[];

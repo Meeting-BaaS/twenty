@@ -33,7 +33,8 @@ export const fromViewManifestToUniversalFlatView = ({
     kanbanAggregateOperationFieldMetadataUniversalIdentifier: null,
     calendarLayout: null,
     calendarFieldMetadataUniversalIdentifier: null,
-    mainGroupByFieldMetadataUniversalIdentifier: null,
+    mainGroupByFieldMetadataUniversalIdentifier:
+      viewManifest.mainGroupByFieldMetadataUniversalIdentifier ?? null,
     shouldHideEmptyGroups: false,
     anyFieldFilterValue: null,
     createdByUserWorkspaceId: null,
