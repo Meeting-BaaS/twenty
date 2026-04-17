@@ -7,8 +7,8 @@ import {
 } from 'twenty-sdk';
 import { RECORDING_UNIVERSAL_IDENTIFIER } from '../objects/recording';
 
-export const WORKSPACE_MEMBER_ON_RECORDING_ID = '8e985272-eae7-51ac-939b-5277b1107bc8';
-export const RECORDINGS_ON_WORKSPACE_MEMBER_ID = '8ab15013-866c-51d5-95bb-21108a07442f';
+export const WORKSPACE_MEMBER_ON_RECORDING_ID = '3bb83966-51d6-41e1-9a33-5b53bc6313d9';
+export const RECORDINGS_ON_WORKSPACE_MEMBER_ID = '0fb0eaac-4e8d-4632-a6ad-f76df4fb93ad';
 
 export default defineField({
   universalIdentifier: WORKSPACE_MEMBER_ON_RECORDING_ID,

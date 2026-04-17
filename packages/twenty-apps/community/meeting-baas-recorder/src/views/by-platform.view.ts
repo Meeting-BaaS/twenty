@@ -6,7 +6,7 @@ import {
 } from '../objects/recording';
 
 export default defineView({
-  universalIdentifier: 'c8f0b6fa-dc35-5adb-83c8-11749702025e',
+  universalIdentifier: '9d3114e6-3ba9-4e31-8197-45e510b69c4c',
   name: 'By Platform',
   objectUniversalIdentifier: RECORDING_UNIVERSAL_IDENTIFIER,
   type: ViewType.KANBAN,
@@ -14,12 +14,12 @@ export default defineView({
   position: 2,
   mainGroupByFieldMetadataUniversalIdentifier: PLATFORM_FIELD_ID,
   groups: [
-    { universalIdentifier: 'd7cc1b3a-d079-54e9-a853-01bbe9306fab', fieldValue: 'GOOGLE_MEET', isVisible: true, position: 0 },
-    { universalIdentifier: '708b2535-067b-5247-b9ef-09c5d80e6cff', fieldValue: 'ZOOM', isVisible: true, position: 1 },
-    { universalIdentifier: 'a732280e-da0a-59ae-8421-86909b7e367f', fieldValue: 'MICROSOFT_TEAMS', isVisible: true, position: 2 },
-    { universalIdentifier: 'e49d6c58-790b-5da3-b2d7-5f0dc641970c', fieldValue: 'UNKNOWN', isVisible: true, position: 3 },
+    { universalIdentifier: '7a0144b1-6d0e-453d-8cda-cf1fa63d3b77', fieldValue: 'GOOGLE_MEET', isVisible: true, position: 0 },
+    { universalIdentifier: '8ed53363-962d-4136-b34c-fae2eae7d3f9', fieldValue: 'ZOOM', isVisible: true, position: 1 },
+    { universalIdentifier: '7ab9b893-6f97-4973-a4a9-2295f69f5d6d', fieldValue: 'MICROSOFT_TEAMS', isVisible: true, position: 2 },
+    { universalIdentifier: '3e82c80b-66db-4be2-8043-552ee309d26c', fieldValue: 'UNKNOWN', isVisible: true, position: 3 },
   ],
   fields: [
-    { universalIdentifier: '1a38ccfd-71e3-59d5-8d50-94fc1c9d25ef', fieldMetadataUniversalIdentifier: PLATFORM_FIELD_ID, position: 0, isVisible: true, size: 150 },
+    { universalIdentifier: 'a578e600-97ec-4cd3-84fe-b254c3f89130', fieldMetadataUniversalIdentifier: PLATFORM_FIELD_ID, position: 0, isVisible: true, size: 150 },
   ],
 });

@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { MeetingBaasApiClient } from '../meeting-baas-api-client';
-import { resolveCalendarEventOwner } from '../twenty-sync-service';
+import { resolveCalendarEventOwner, checkIfRecordingExistsForEvent, upsertRecording } from '../twenty-sync-service';
+import { detectPlatform } from '../twenty-sync-service';
 import { createLogger } from '../logger';
-import { getRestApiUrl, restHeaders } from '../utils';
+import { buildRestUrl, restHeaders } from '../utils';
 
 const logger = createLogger('schedule-bot');
 
@@ -14,8 +15,6 @@ type BotSettings = {
   botEntryMessage: string;
 };
 
-const TWENTY_API_KEY = process.env.TWENTY_API_KEY ?? '';
-
 const fetchWorkspaceMemberBotSettings = async (
   workspaceMemberId: string,
 ): Promise<BotSettings> => {
@@ -23,9 +22,10 @@ const fetchWorkspaceMemberBotSettings = async (
     const response = await axios({
       method: 'GET',
       headers: restHeaders(),
-      url: `${getRestApiUrl()}/workspaceMembers/${workspaceMemberId}`,
+      url: buildRestUrl(`workspaceMembers/${workspaceMemberId}`),
     });
-    const memberData = response.data?.data ?? response.data;
+    const body = response.data?.data ?? response.data;
+    const memberData = body?.workspaceMember ?? body;
     return {
       preference: (memberData?.recordingPreference as RecordingPreference) ?? 'RECORD_NONE',
       botName: (memberData?.botName as string) || 'Twenty CRM Recorder',
@@ -45,25 +45,29 @@ const fetchCalendarEventTitle = async (
     const response = await axios({
       method: 'GET',
       headers: restHeaders(),
-      url: `${getRestApiUrl()}/calendarEvents/${calendarEventId}`,
+      url: buildRestUrl(`calendarEvents/${calendarEventId}`),
     });
-    const eventData = response.data?.data ?? response.data;
+    const body = response.data?.data ?? response.data;
+    const eventData = body?.calendarEvent ?? body;
     return (eventData?.title as string) || '';
   } catch {
     return '';
   }
 };
 
+// The recording preference is fetched per-call rather than from the event payload
+// because Twenty's database event payloads only contain the triggering object's fields
+// (calendarEvent), not joined data from other objects (workspaceMember).
 const isOrganizer = async (
   calendarEventId: string,
   workspaceMemberId: string,
 ): Promise<boolean> => {
   try {
-    const response = await axios({
-      method: 'GET',
-      headers: { Authorization: `Bearer ${TWENTY_API_KEY}` },
-      url: `${getRestApiUrl()}/calendarEventParticipants?filter=calendarEventId%5Beq%5D%3A%22${encodeURIComponent(calendarEventId)}%22&limit=50`,
+    const url = buildRestUrl('calendarEventParticipants', {
+      filter: { calendarEventId: { eq: calendarEventId } },
+      limit: 50,
     });
+    const response = await axios.get(url, { headers: restHeaders() });
     const participants: Record<string, unknown>[] =
       response.data?.data?.calendarEventParticipants ?? [];
 
@@ -79,7 +83,7 @@ const isOrganizer = async (
   }
 };
 
-// Shared handler: resolve owner → check preference → check organizer → schedule bot
+// Shared handler: resolve owner -> check preference -> check organizer -> schedule bot
 export const scheduleBot = async (
   calendarEventId: string,
   conferenceUrl: string,
@@ -88,6 +92,13 @@ export const scheduleBot = async (
   const apiKey = process.env.MEETING_BAAS_API_KEY;
   if (!apiKey) {
     logger.debug('MEETING_BAAS_API_KEY not set, skipping bot scheduling');
+    return null;
+  }
+
+  // Dedup: check if a recording already exists for this calendar event
+  const alreadyExists = await checkIfRecordingExistsForEvent(calendarEventId);
+  if (alreadyExists) {
+    logger.debug(`Recording already exists for calendar event ${calendarEventId}, skipping`);
     return null;
   }
 
@@ -119,6 +130,7 @@ export const scheduleBot = async (
 
   // Schedule the bot
   const client = new MeetingBaasApiClient(apiKey);
+  const serverUrl = process.env.TWENTY_API_URL ?? '';
   const botId = await client.createScheduledBot({
     meetingUrl: conferenceUrl,
     joinAt: startsAt,
@@ -130,8 +142,31 @@ export const scheduleBot = async (
       meeting_url: conferenceUrl,
       meeting_title: meetingTitle,
     },
+    callbackUrl: serverUrl ? `${serverUrl}/s/webhook/meeting-baas` : undefined,
+    callbackSecret: apiKey,
   });
 
   logger.debug(`Scheduled bot ${botId} for calendar event ${calendarEventId} (${conferenceUrl})`);
+
+  // Create placeholder recording so subsequent triggers detect the dedup
+  try {
+    await upsertRecording({
+      botId,
+      name: meetingTitle ? `Scheduled: ${meetingTitle}` : `Scheduled: ${conferenceUrl}`,
+      date: startsAt,
+      duration: 0,
+      platform: detectPlatform(conferenceUrl),
+      status: 'IN_PROGRESS',
+      meetingUrl: { primaryLinkLabel: 'Join Meeting', primaryLinkUrl: conferenceUrl, secondaryLinks: null },
+      mp4Url: null,
+      transcript: '',
+      calendarEventId,
+      workspaceMemberId: ownership.workspaceMemberId,
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.warn(`Failed to create placeholder recording: ${msg}`);
+  }
+
   return botId;
 };

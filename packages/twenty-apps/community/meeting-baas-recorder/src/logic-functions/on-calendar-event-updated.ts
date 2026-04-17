@@ -5,7 +5,7 @@ import {
   type ObjectRecordUpdateEvent,
 } from 'twenty-sdk';
 import { createLogger } from '../logger';
-import { getRestApiUrl } from '../utils';
+import { buildRestUrl } from '../utils';
 import { scheduleBot } from './schedule-bot';
 
 const logger = createLogger('on-calendar-event-updated');
@@ -26,10 +26,12 @@ const TWENTY_API_KEY = process.env.TWENTY_API_KEY ?? '';
 // Check if a recording is already linked to this calendar event
 const hasExistingRecording = async (calendarEventId: string): Promise<boolean> => {
   try {
-    const response = await axios({
-      method: 'GET',
+    const url = buildRestUrl('recordings', {
+      filter: { calendarEventId: { eq: calendarEventId } },
+      limit: 1,
+    });
+    const response = await axios.get(url, {
       headers: { Authorization: `Bearer ${TWENTY_API_KEY}` },
-      url: `${getRestApiUrl()}/recordings?filter=calendarEventId%5Beq%5D%3A%22${encodeURIComponent(calendarEventId)}%22&limit=1`,
     });
     const recordings: Record<string, unknown>[] =
       response.data?.data?.recordings ?? [];
@@ -74,7 +76,7 @@ const handler = async (
 };
 
 export default defineLogicFunction({
-  universalIdentifier: 'c4f20492-beec-535d-9ac4-28a3f25a9813',
+  universalIdentifier: 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e',
   name: 'on-calendar-event-updated',
   description: 'Schedules a Meeting BaaS recording bot when a calendar event gains a conference link',
   timeoutSeconds: 15,

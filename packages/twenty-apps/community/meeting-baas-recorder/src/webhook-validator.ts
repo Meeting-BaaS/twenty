@@ -1,63 +1,146 @@
 import { createHash } from 'crypto';
-import { WebhookEvent, type MeetingBaasWebhookPayload } from './types';
+import { z } from 'zod';
 
-const VALID_WEBHOOK_EVENTS: MeetingBaasWebhookPayload['event'][] = [
-  WebhookEvent.COMPLETED,
-  WebhookEvent.FAILED,
-  WebhookEvent.STATUS_CHANGE,
-];
+// V2 webhook event types
+const WebhookEventSchema = z.enum(['bot.completed', 'bot.failed', 'bot.status_change']);
+
+// bot.completed payload
+const CompletedDataSchema = z.object({
+  bot_id: z.string().min(1),
+  duration_seconds: z.number().optional(),
+  video: z.string().optional(),
+  joined_at: z.string().optional(),
+  participants: z.array(z.unknown()).optional(),
+  transcription: z.string().optional(),
+  diarization: z.string().optional(),
+});
+
+const CompletedPayloadSchema = z.object({
+  event: z.literal('bot.completed'),
+  data: CompletedDataSchema,
+  extra: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+// bot.failed payload
+const FailedDataSchema = z.object({
+  bot_id: z.string().min(1),
+  error_message: z.string().optional(),
+  error_code: z.string().optional(),
+});
+
+const FailedPayloadSchema = z.object({
+  event: z.literal('bot.failed'),
+  data: FailedDataSchema,
+  extra: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+// bot.status_change payload
+const StatusChangeDataSchema = z.object({
+  bot_id: z.string().min(1),
+  status: z.string().optional(),
+});
+
+const StatusChangePayloadSchema = z.object({
+  event: z.literal('bot.status_change'),
+  data: StatusChangeDataSchema,
+  extra: z.record(z.string(), z.unknown()).optional().nullable(),
+});
+
+// Union of all V2 webhook payloads
+export const WebhookPayloadSchema = z.discriminatedUnion('event', [
+  CompletedPayloadSchema,
+  FailedPayloadSchema,
+  StatusChangePayloadSchema,
+]);
+
+export type ParsedWebhookPayload = z.infer<typeof WebhookPayloadSchema>;
 
 export type SignatureVerificationResult = {
   isValid: boolean;
   reason?: string;
 };
 
-// Meeting BaaS authenticates webhooks by including the API key
-// in the x-meeting-baas-api-key header. We verify it matches our configured key.
+// V2 authenticates callbacks via x-mb-secret header (the secret from callback_config)
 export const verifyWebhookApiKey = (
-  providedKey: string | undefined,
+  headers: Record<string, string> | undefined,
   expectedKey: string
 ): SignatureVerificationResult => {
-  if (!providedKey) {
-    return { isValid: false, reason: 'missing x-meeting-baas-api-key header' };
-  }
-
   if (!expectedKey) {
     return { isValid: false, reason: 'MEETING_BAAS_API_KEY not configured' };
   }
 
-  const isValid = providedKey === expectedKey;
+  if (!headers) {
+    return { isValid: false, reason: 'no headers provided' };
+  }
 
-  return { isValid, reason: isValid ? undefined : 'API key mismatch' };
+  const normalized: Record<string, string> = {};
+  for (const [k, v] of Object.entries(headers)) {
+    normalized[k.toLowerCase()] = v;
+  }
+
+  const mbSecret = normalized['x-mb-secret'];
+  if (mbSecret) {
+    return mbSecret === expectedKey
+      ? { isValid: true }
+      : { isValid: false, reason: 'x-mb-secret mismatch' };
+  }
+
+  return { isValid: false, reason: 'missing x-mb-secret header' };
 };
 
 export const getApiKeyFingerprint = (apiKey: string): string => {
   return createHash('sha256').update(apiKey).digest('hex').substring(0, 8);
 };
 
-export const isValidMeetingBaasPayload = (
+// Parse and validate webhook payload using zod. Handles:
+// - Direct payload: { event, data }
+// - Wrapped payload (Twenty logic function): { params: { event, data }, headers: {...} }
+// - String JSON payloads
+export const parseWebhookPayload = (
   params: unknown
-): params is MeetingBaasWebhookPayload => {
-  if (!params || typeof params !== 'object') {
-    return false;
+): { payload: ParsedWebhookPayload; extractedHeaders?: Record<string, string> } => {
+  let normalizedParams = params;
+  let extractedHeaders: Record<string, string> | undefined;
+
+  if (typeof normalizedParams === 'string') {
+    try {
+      normalizedParams = JSON.parse(normalizedParams);
+    } catch {
+      throw new Error('Invalid or missing webhook payload');
+    }
   }
 
-  const payload = params as Record<string, unknown>;
-
-  // Must have 'event' field with valid V2 event type
-  if (typeof payload['event'] !== 'string' || payload['event'].length === 0) {
-    return false;
+  // Try direct parse first
+  const directResult = WebhookPayloadSchema.safeParse(normalizedParams);
+  if (directResult.success) {
+    return { payload: directResult.data };
   }
 
-  if (!VALID_WEBHOOK_EVENTS.includes(payload['event'] as MeetingBaasWebhookPayload['event'])) {
-    return false;
+  // Try unwrapping from a wrapper object (Twenty logic function envelope)
+  if (normalizedParams && typeof normalizedParams === 'object') {
+    const wrapper = normalizedParams as Record<string, unknown>;
+
+    if (wrapper.headers && typeof wrapper.headers === 'object' && !Array.isArray(wrapper.headers)) {
+      extractedHeaders = wrapper.headers as Record<string, string>;
+    }
+
+    for (const key of ['params', 'payload', 'body', 'data', 'event']) {
+      const candidate = wrapper[key];
+      const wrappedResult = WebhookPayloadSchema.safeParse(candidate);
+      if (wrappedResult.success) {
+        return { payload: wrappedResult.data, extractedHeaders };
+      }
+    }
+
+    // Try reconstructing from top-level event + data fields
+    if (typeof wrapper['event'] === 'string' && wrapper['data']) {
+      const reconstructed = { event: wrapper['event'], data: wrapper['data'], extra: wrapper['extra'] };
+      const reconstructedResult = WebhookPayloadSchema.safeParse(reconstructed);
+      if (reconstructedResult.success) {
+        return { payload: reconstructedResult.data, extractedHeaders };
+      }
+    }
   }
 
-  // Must have 'data' object with bot_id
-  if (!payload['data'] || typeof payload['data'] !== 'object') {
-    return false;
-  }
-
-  const data = payload['data'] as Record<string, unknown>;
-  return typeof data['bot_id'] === 'string' && data['bot_id'].length > 0;
+  throw new Error('Invalid or missing webhook payload');
 };

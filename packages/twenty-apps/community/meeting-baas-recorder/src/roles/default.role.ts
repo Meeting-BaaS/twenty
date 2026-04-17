@@ -1,13 +1,18 @@
 import { defineRole, PermissionFlag } from 'twenty-sdk';
 import { RECORDING_UNIVERSAL_IDENTIFIER } from '../objects/recording';
 
-export const DEFAULT_ROLE_ID = '5aceb3d4-2453-58e8-a19f-e3ae7e148e93';
+export const DEFAULT_ROLE_ID = '3231cf40-5b90-4c2b-ae41-fcb5606299b4';
 
 export default defineRole({
   universalIdentifier: DEFAULT_ROLE_ID,
   label: 'Meeting BaaS Recorder role',
   description: 'Default role for the Meeting BaaS Recorder app',
-  canReadAllObjectRecords: false,
+  // Needs read access to calendarEvent, calendarEventParticipant,
+  // calendarChannelEventAssociation, calendarChannel, connectedAccount,
+  // workspaceMember for ownership resolution and preference checks.
+  // Per-object permissions on system objects are not supported, so we
+  // grant broad read access here while keeping writes constrained.
+  canReadAllObjectRecords: true,
   canUpdateAllObjectRecords: false,
   canSoftDeleteAllObjectRecords: false,
   canDestroyAllObjectRecords: false,
@@ -24,5 +29,5 @@ export default defineRole({
       canDestroyObjectRecords: false,
     },
   ],
-  permissionFlags: [PermissionFlag.APPLICATIONS],
+  permissionFlags: [PermissionFlag.APPLICATIONS, PermissionFlag.AI],
 });

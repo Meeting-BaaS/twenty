@@ -7,13 +7,14 @@ type RecordingPreference = 'RECORD_ALL' | 'RECORD_ORGANIZED' | 'RECORD_NONE';
 type WorkspaceMember = {
   id: string;
   recordingPreference?: RecordingPreference;
-  botName?: string;
-  botEntryMessage?: string;
 };
 
 type CalendarChannel = {
   id: string;
 };
+
+const getApiUrl = () => process.env.TWENTY_API_URL ?? '';
+const getToken = () => process.env.TWENTY_APP_ACCESS_TOKEN ?? '';
 
 const StyledContainer = styled.div`
   display: flex;
@@ -22,32 +23,26 @@ const StyledContainer = styled.div`
   width: 100%;
 `;
 
-const StyledSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const StyledHeading = styled.h2`
-  color: #1f2937;
-  font-family: Inter, sans-serif;
-  font-size: 20px;
+const StyledSectionTitle = styled.h3`
+  color: #333;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
   font-weight: 600;
-  margin: 0;
+  margin: 0 0 4px 0;
 `;
 
-const StyledSectionDescription = styled.p`
-  color: #6b7280;
-  font-family: Inter, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  margin: 0;
+const StyledSectionSubtitle = styled.p`
+  color: #818181;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  margin: 0 0 12px 0;
 `;
 
 const StyledCard = styled.div`
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: #fff;
+  border: 1px solid #ebebeb;
   border-radius: 8px;
   display: flex;
   gap: 12px;
@@ -56,9 +51,9 @@ const StyledCard = styled.div`
 
 const StyledIconContainer = styled.div`
   align-items: center;
-  background: #f3f4f6;
+  background: #f5f5f5;
   border-radius: 8px;
-  color: #4b5563;
+  color: #666;
   display: flex;
   flex-shrink: 0;
   height: 40px;
@@ -75,30 +70,30 @@ const StyledTextContainer = styled.div`
 `;
 
 const StyledTitle = styled.span`
-  color: #1f2937;
-  font-family: Inter, sans-serif;
+  color: #333;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 `;
 
 const StyledDescription = styled.span`
-  color: #6b7280;
-  font-family: Inter, sans-serif;
+  color: #818181;
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
 `;
 
-const StyledStatus = styled.span<{ tone: 'green' | 'red' }>`
+const StyledStatusBadge = styled.span<{ connected: boolean }>`
   align-items: center;
-  background: ${({ tone }) => (tone === 'green' ? '#dcfce7' : '#fee2e2')};
-  border-radius: 999px;
-  color: ${({ tone }) => (tone === 'green' ? '#166534' : '#991b1b')};
+  background: ${({ connected }) => (connected ? '#10b981' : '#ef4444')};
+  border-radius: 4px;
+  color: #fff;
   display: inline-flex;
   flex-shrink: 0;
-  font-family: Inter, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  height: 28px;
-  padding: 0 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  height: 32px;
+  padding: 0 12px;
   white-space: nowrap;
 `;
 
@@ -110,11 +105,8 @@ const StyledRadioGroup = styled.div`
 
 const StyledRadioLabel = styled.label<{ selected: boolean }>`
   align-items: center;
-  background: ${({ selected }) =>
-    selected ? '#eff6ff' : '#ffffff'};
-  border: 1px solid
-    ${({ selected }) =>
-      selected ? '#2563eb' : '#e5e7eb'};
+  background: ${({ selected }) => (selected ? '#f0f0ff' : '#fff')};
+  border: 1px solid ${({ selected }) => (selected ? '#5e5adb' : '#ebebeb')};
   border-radius: 8px;
   cursor: pointer;
   display: flex;
@@ -123,12 +115,12 @@ const StyledRadioLabel = styled.label<{ selected: boolean }>`
   transition: all 0.15s ease;
 
   &:hover {
-    border-color: #2563eb;
+    border-color: #5e5adb;
   }
 `;
 
 const StyledRadioInput = styled.input`
-  accent-color: #2563eb;
+  accent-color: #5e5adb;
   cursor: pointer;
   height: 16px;
   margin: 0;
@@ -142,83 +134,78 @@ const StyledRadioTextContainer = styled.div`
 `;
 
 const StyledRadioTitle = styled.span`
-  color: #1f2937;
-  font-family: Inter, sans-serif;
+  color: #333;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 `;
 
 const StyledRadioDescription = styled.span`
-  color: #6b7280;
-  font-family: Inter, sans-serif;
+  color: #818181;
+  font-family: 'Inter', sans-serif;
   font-size: 12px;
 `;
 
-const StyledFieldGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-const StyledFieldLabel = styled.label`
-  color: #1f2937;
-  font-family: Inter, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-`;
-
-const StyledTextInput = styled.input`
-  background: #ffffff;
-  border: 1px solid #d1d5db;
+const StyledBanner = styled.div<{ variant: 'info' | 'warning' }>`
+  align-items: center;
+  background: ${({ variant }) => (variant === 'warning' ? '#fef3c7' : '#eff6ff')};
+  border: 1px solid ${({ variant }) => (variant === 'warning' ? '#f59e0b' : '#3b82f6')};
   border-radius: 8px;
-  color: #111827;
-  font-family: Inter, sans-serif;
+  color: ${({ variant }) => (variant === 'warning' ? '#92400e' : '#1e40af')};
+  display: flex;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  gap: 8px;
+  padding: 12px 16px;
+`;
+
+const StyledButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
+  align-items: center;
+  background: ${({ variant }) => (variant === 'secondary' ? '#fff' : '#5e5adb')};
+  border: 1px solid ${({ variant }) => (variant === 'secondary' ? '#ebebeb' : '#5e5adb')};
+  border-radius: 8px;
+  color: ${({ variant }) => (variant === 'secondary' ? '#333' : '#fff')};
+  cursor: pointer;
+  display: inline-flex;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
-  margin-top: 4px;
-  outline: none;
-  padding: 10px 12px;
-  width: 100%;
+  font-weight: 500;
+  gap: 8px;
+  height: 40px;
+  justify-content: center;
+  padding: 0 20px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 
-  &:focus {
-    border-color: #2563eb;
+  &:hover:not(:disabled) {
+    opacity: 0.9;
   }
 
-  &::placeholder {
-    color: #9ca3af;
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 `;
 
-const StyledCharCount = styled.span<{ over: boolean }>`
-  color: ${({ over }) => (over ? '#dc2626' : '#6b7280')};
-  font-family: Inter, sans-serif;
-  font-size: 11px;
-  margin-top: 2px;
-  text-align: right;
-`;
-
-const StyledCallout = styled.div<{ variant: 'warning' | 'info' }>`
-  background: ${({ variant }) => (variant === 'warning' ? '#fffbeb' : '#eff6ff')};
-  border: 1px solid ${({ variant }) => (variant === 'warning' ? '#fcd34d' : '#93c5fd')};
+const StyledResultBanner = styled.div<{ variant: 'success' | 'error' }>`
+  align-items: center;
+  background: ${({ variant }) => (variant === 'success' ? '#ecfdf5' : '#fef2f2')};
+  border: 1px solid ${({ variant }) => (variant === 'success' ? '#10b981' : '#ef4444')};
   border-radius: 8px;
-  color: #1f2937;
+  color: ${({ variant }) => (variant === 'success' ? '#065f46' : '#991b1b')};
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  gap: 8px;
+  padding: 12px 16px;
 `;
 
-const StyledCalloutTitle = styled.span`
-  font-family: Inter, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-`;
-
-const StyledCalloutDescription = styled.span`
-  color: #4b5563;
-  font-family: Inter, sans-serif;
-  font-size: 13px;
-  line-height: 1.5;
-`;
+type BatchScheduleResult = {
+  scheduled: number;
+  skipped: number;
+  errors: string[];
+  hasMore: boolean;
+};
 
 const PREFERENCE_OPTIONS: Array<{
   value: RecordingPreference;
@@ -243,60 +230,117 @@ const PREFERENCE_OPTIONS: Array<{
 ];
 
 const fetchCurrentWorkspaceMember = async (): Promise<WorkspaceMember> => {
-  const response = await fetch(`${process.env.TWENTY_API_URL}/rest/currentWorkspaceMember`, {
-    headers: { Authorization: `Bearer ${process.env.TWENTY_API_KEY}` },
+  // Use metadata GraphQL to get the current user's workspace member
+  const response = await fetch(`${getApiUrl()}/metadata`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: `{ currentUser { id workspaceMember { id } } }`,
+    }),
   });
   const data = await response.json();
-  return data?.data ?? data;
+  const memberId = data?.data?.currentUser?.workspaceMember?.id;
+  if (!memberId) throw new Error('Could not find workspace member');
+
+  // Fetch the full workspace member with recordingPreference via REST
+  const memberResponse = await fetch(
+    `${getApiUrl()}/rest/workspaceMembers/${memberId}`,
+    { headers: { Authorization: `Bearer ${getToken()}` } },
+  );
+  const memberData = await memberResponse.json();
+  const member = memberData?.data?.workspaceMember ?? memberData?.data;
+  return { id: memberId, recordingPreference: member?.recordingPreference };
 };
 
 const updateWorkspaceMember = async (
   memberId: string,
-  fields: {
-    recordingPreference?: RecordingPreference;
-    botName?: string | null;
-    botEntryMessage?: string | null;
-  },
+  recordingPreference: RecordingPreference,
 ): Promise<void> => {
-  const response = await fetch(`${process.env.TWENTY_API_URL}/rest/workspaceMembers/${memberId}`, {
+  const response = await fetch(`${getApiUrl()}/rest/workspaceMembers/${memberId}`, {
     method: 'PATCH',
     headers: {
-      Authorization: `Bearer ${process.env.TWENTY_API_KEY}`,
+      Authorization: `Bearer ${getToken()}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(fields),
+    body: JSON.stringify({ recordingPreference }),
   });
   if (!response.ok) {
-    throw new Error(`PATCH failed: ${response.status}`);
+    throw new Error(`Failed to update preference: ${response.status}`);
   }
 };
 
-const fetchCalendarChannels = async (): Promise<CalendarChannel[]> => {
-  const response = await fetch(`${process.env.TWENTY_API_URL}/rest/calendarChannels?limit=1`, {
-    headers: { Authorization: `Bearer ${process.env.TWENTY_API_KEY}` },
+const fetchUserCalendarChannels = async (_memberId: string): Promise<CalendarChannel[]> => {
+  // Use the metadata GraphQL endpoint with the app access token (user-scoped)
+  const response = await fetch(`${getApiUrl()}/metadata`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: `{ myCalendarChannels { id } }`,
+    }),
   });
   const data = await response.json();
-  return data?.data?.calendarChannels ?? [];
+  return data?.data?.myCalendarChannels ?? [];
+};
+
+const SECRET_VARIABLE_MASK = '********';
+
+const checkApiKeyConfigured = async (): Promise<boolean> => {
+  try {
+    const response = await fetch(`${getApiUrl()}/metadata`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `{ findManyApplications { name applicationVariables { key value isSecret } } }`,
+      }),
+    });
+    const data = await response.json();
+    const apps = data?.data?.findManyApplications ?? [];
+    for (const app of apps) {
+      const vars = app.applicationVariables ?? [];
+      const apiKeyVar = vars.find(
+        (v: { key: string }) => v.key === 'MEETING_BAAS_API_KEY',
+      );
+      if (apiKeyVar) {
+        // An empty secret returns exactly '********', a real value returns
+        // a prefix + mask (e.g. '5z********'). So !== mask means configured.
+        return apiKeyVar.value !== SECRET_VARIABLE_MASK;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
 };
 
 const MeetingBaasSettings = () => {
   const [member, setMember] = useState<WorkspaceMember | null>(null);
   const [preference, setPreference] = useState<RecordingPreference>('RECORD_NONE');
-  const [botName, setBotName] = useState('');
-  const [botEntryMessage, setBotEntryMessage] = useState('');
   const [hasCalendar, setHasCalendar] = useState<boolean | null>(null);
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-
-  const apiKeyConfigured = Boolean(process.env.MEETING_BAAS_API_KEY);
+  const [isBatchScheduling, setIsBatchScheduling] = useState(false);
+  const [batchResult, setBatchResult] = useState<BatchScheduleResult | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchCurrentWorkspaceMember(), fetchCalendarChannels()])
-      .then(([memberData, channels]) => {
+    Promise.all([
+      fetchCurrentWorkspaceMember(),
+      checkApiKeyConfigured(),
+    ])
+      .then(async ([memberData, hasApiKey]) => {
         setMember(memberData);
         setPreference(memberData.recordingPreference ?? 'RECORD_NONE');
-        setBotName(memberData.botName ?? '');
-        setBotEntryMessage(memberData.botEntryMessage ?? '');
+        setApiKeyConfigured(hasApiKey);
+        const channels = await fetchUserCalendarChannels(memberData.id);
         setHasCalendar(channels.length > 0);
       })
       .catch(() => {
@@ -307,56 +351,51 @@ const MeetingBaasSettings = () => {
 
   const handlePreferenceChange = async (newPreference: RecordingPreference) => {
     if (!member || isSaving) return;
-    const previousPreference = preference;
     setIsSaving(true);
     setPreference(newPreference);
     try {
-      await updateWorkspaceMember(member.id, { recordingPreference: newPreference });
-      setMember({ ...member, recordingPreference: newPreference });
+      await updateWorkspaceMember(member.id, newPreference);
     } catch {
-      setPreference(previousPreference);
+      setPreference(member.recordingPreference ?? 'RECORD_NONE');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleBotNameBlur = async () => {
-    if (!member || isSaving) return;
-    const trimmed = botName.trim();
-    if (trimmed === (member.botName ?? '')) return;
-    setIsSaving(true);
+  const handleBatchSchedule = async () => {
+    if (isBatchScheduling) return;
+    setIsBatchScheduling(true);
+    setBatchResult(null);
     try {
-      await updateWorkspaceMember(member.id, { botName: trimmed || null });
-      setMember({ ...member, botName: trimmed || undefined });
+      const response = await fetch(`${getApiUrl()}/s/batch-schedule-bots`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      const data = await response.json();
+      setBatchResult({
+        scheduled: data.scheduled ?? 0,
+        skipped: data.skipped ?? 0,
+        errors: data.errors ?? [],
+        hasMore: data.hasMore ?? false,
+      });
     } catch {
-      setBotName(member.botName ?? '');
+      setBatchResult({ scheduled: 0, skipped: 0, errors: ['Request failed'], hasMore: false });
     } finally {
-      setIsSaving(false);
+      setIsBatchScheduling(false);
     }
   };
 
-  const handleEntryMessageBlur = async () => {
-    if (!member || isSaving) return;
-    const trimmed = botEntryMessage.trim().slice(0, 500);
-    if (trimmed === (member.botEntryMessage ?? '')) return;
-    setIsSaving(true);
-    try {
-      await updateWorkspaceMember(member.id, { botEntryMessage: trimmed || null });
-      setMember({ ...member, botEntryMessage: trimmed || undefined });
-    } catch {
-      setBotEntryMessage(member.botEntryMessage ?? '');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const showBatchButton = preference !== 'RECORD_NONE' && apiKeyConfigured && hasCalendar;
 
   if (isLoading) {
     return (
       <StyledContainer>
-        <StyledSection>
-          <StyledHeading>Meeting Recording</StyledHeading>
-          <StyledSectionDescription>Loading settings...</StyledSectionDescription>
-        </StyledSection>
+        <StyledSectionTitle>Meeting Recording</StyledSectionTitle>
+        <StyledSectionSubtitle>Loading settings...</StyledSectionSubtitle>
       </StyledContainer>
     );
   }
@@ -364,51 +403,43 @@ const MeetingBaasSettings = () => {
   return (
     <StyledContainer>
       {/* API Key Status */}
-      <StyledSection>
-        <div>
-          <StyledHeading>Meeting BaaS Connection</StyledHeading>
-          <StyledSectionDescription>
-            Meeting BaaS records your meetings and syncs transcripts into Twenty
-          </StyledSectionDescription>
-        </div>
+      <div>
+        <StyledSectionTitle>Meeting BaaS Connection</StyledSectionTitle>
+        <StyledSectionSubtitle>
+          Meeting BaaS records your meetings and syncs transcripts into Twenty
+        </StyledSectionSubtitle>
         <StyledCard>
           <StyledIconContainer>
-            <span style={{ fontSize: 20 }}>🎥</span>
+            <span style={{ fontSize: 20 }}>V</span>
           </StyledIconContainer>
           <StyledTextContainer>
             <StyledTitle>API Key</StyledTitle>
             <StyledDescription>
               {apiKeyConfigured
                 ? 'Your Meeting BaaS API key is configured'
-                : 'No API key configured — add MEETING_BAAS_API_KEY in app variables'}
+                : 'No API key configured — set MEETING_BAAS_API_KEY in the Variables tab'}
             </StyledDescription>
           </StyledTextContainer>
-          <StyledStatus tone={apiKeyConfigured ? 'green' : 'red'}>
+          <StyledStatusBadge connected={apiKeyConfigured}>
             {apiKeyConfigured ? 'Connected' : 'Not Set'}
-          </StyledStatus>
+          </StyledStatusBadge>
         </StyledCard>
-      </StyledSection>
+      </div>
 
       {/* Calendar Connection Banner */}
       {hasCalendar === false && (
-        <StyledCallout variant="warning">
-          <StyledCalloutTitle>No calendar connected</StyledCalloutTitle>
-          <StyledCalloutDescription>
-            Connect your Google or Microsoft calendar in Settings {'->'} Accounts to enable
-            automatic meeting recording.
-          </StyledCalloutDescription>
-        </StyledCallout>
+        <StyledBanner variant="warning">
+          No calendar connected. Connect your Google or Microsoft calendar in Settings &gt; Accounts
+          to enable automatic meeting recording.
+        </StyledBanner>
       )}
 
       {/* Recording Preference */}
-      <StyledSection>
-        <div>
-          <StyledHeading>Recording Preference</StyledHeading>
-          <StyledSectionDescription>
-            Choose which meetings are automatically recorded when they have a conference
-            link
-          </StyledSectionDescription>
-        </div>
+      <div>
+        <StyledSectionTitle>Recording Preference</StyledSectionTitle>
+        <StyledSectionSubtitle>
+          Choose which meetings are automatically recorded when they have a conference link
+        </StyledSectionSubtitle>
         <StyledRadioGroup>
           {PREFERENCE_OPTIONS.map((option) => (
             <StyledRadioLabel key={option.value} selected={preference === option.value}>
@@ -427,62 +458,53 @@ const MeetingBaasSettings = () => {
             </StyledRadioLabel>
           ))}
         </StyledRadioGroup>
-      </StyledSection>
-
-      {/* Bot Customization */}
-      <StyledSection>
-        <div>
-          <StyledHeading>Bot Customization</StyledHeading>
-          <StyledSectionDescription>
-            Customize how the recording bot appears when it joins your meetings
-          </StyledSectionDescription>
-        </div>
-        <StyledFieldGroup>
-          <div>
-            <StyledFieldLabel>Bot name</StyledFieldLabel>
-            <StyledTextInput
-              type="text"
-              placeholder="Twenty CRM Recorder"
-              value={botName}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBotName(e.target.value)}
-              onBlur={handleBotNameBlur}
-              disabled={isSaving}
-            />
-          </div>
-          <div>
-            <StyledFieldLabel>Entry message</StyledFieldLabel>
-            <StyledTextInput
-              type="text"
-              placeholder="Message posted in chat when the bot joins"
-              value={botEntryMessage}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setBotEntryMessage(e.target.value.slice(0, 500))
-              }
-              onBlur={handleEntryMessageBlur}
-              disabled={isSaving}
-              maxLength={500}
-            />
-            <StyledCharCount over={botEntryMessage.length >= 500}>
-              {botEntryMessage.length}/500
-            </StyledCharCount>
-          </div>
-        </StyledFieldGroup>
-      </StyledSection>
+      </div>
 
       {preference !== 'RECORD_NONE' && !apiKeyConfigured && (
-        <StyledCallout variant="info">
-          <StyledCalloutTitle>API key required</StyledCalloutTitle>
-          <StyledCalloutDescription>
-            Recording is enabled but no API key is set. Add `MEETING_BAAS_API_KEY` in
-            the app variables to start recording.
-          </StyledCalloutDescription>
-        </StyledCallout>
+        <StyledBanner variant="info">
+          Recording is enabled but no API key is set. Set MEETING_BAAS_API_KEY in the Variables tab
+          to start recording.
+        </StyledBanner>
+      )}
+
+      {/* Batch Schedule Existing Meetings */}
+      {showBatchButton && (
+        <div>
+          <StyledSectionTitle>Existing Meetings</StyledSectionTitle>
+          <StyledSectionSubtitle>
+            Schedule bots for future calendar events that were synced before recording was enabled
+          </StyledSectionSubtitle>
+          <StyledButton
+            onClick={handleBatchSchedule}
+            disabled={isBatchScheduling}
+            variant="secondary"
+          >
+            {isBatchScheduling ? 'Scheduling...' : 'Schedule existing meetings'}
+          </StyledButton>
+
+          {batchResult && (batchResult.errors?.length ?? 0) === 0 && (
+            <StyledResultBanner variant="success" style={{ marginTop: 12 }}>
+              {batchResult.scheduled > 0
+                ? `Scheduled bots for ${batchResult.scheduled} meeting${batchResult.scheduled !== 1 ? 's' : ''} (${batchResult.skipped} skipped)`
+                : 'No new meetings to schedule'}
+              {batchResult.hasMore && ' — click again to process more'}
+            </StyledResultBanner>
+          )}
+
+          {batchResult && (batchResult.errors?.length ?? 0) > 0 && (
+            <StyledResultBanner variant="error" style={{ marginTop: 12 }}>
+              {batchResult.scheduled > 0
+                ? `Scheduled ${batchResult.scheduled}, but ${batchResult.errors.length} error${batchResult.errors.length !== 1 ? 's' : ''} occurred`
+                : `Failed: ${batchResult.errors[0]}`}
+            </StyledResultBanner>
+          )}
+        </div>
       )}
     </StyledContainer>
   );
 };
 
-export const SETTINGS_FRONT_COMPONENT_ID = '7f2c17b4-2cd2-5447-b7d1-83ef12040837';
+export const SETTINGS_FRONT_COMPONENT_ID = '4ea804f4-6c22-457b-b8a2-66673bb6fc76';
 
 export default defineFrontComponent({
   universalIdentifier: SETTINGS_FRONT_COMPONENT_ID,

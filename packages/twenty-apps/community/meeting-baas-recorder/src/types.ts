@@ -1,4 +1,4 @@
-// SDK V2 types and runtime constants
+// SDK V2 types
 import type { V2 } from '@meeting-baas/sdk';
 
 export type BotWebhookCompleted = V2.BotWebhookCompleted;
@@ -7,13 +7,11 @@ export type BotWebhookFailed = V2.BotWebhookFailed;
 export type BotWebhookFailedData = V2.BotWebhookFailedData;
 export type BotWebhookStatusChange = V2.BotWebhookStatusChange;
 
-// Union of all webhook payloads we handle
 export type MeetingBaasWebhookPayload =
   | BotWebhookCompleted
   | BotWebhookFailed
   | BotWebhookStatusChange;
 
-// Webhook event discriminants derived from SDK types
 export const WebhookEvent = {
   COMPLETED: 'bot.completed' as BotWebhookCompleted['event'],
   FAILED: 'bot.failed' as BotWebhookFailed['event'],
@@ -34,6 +32,8 @@ export type RecordingData = {
   date: string;
   duration: number;
   transcript: string;
+  transcriptionUrl?: string;
+  diarizationUrl?: string;
   mp4Url: string;
   meetingUrl: string;
   platform: MeetingPlatform;
@@ -59,6 +59,7 @@ export type RecordingUpsertInput = {
   meetingUrl: { primaryLinkLabel: string; primaryLinkUrl: string; secondaryLinks: null } | null;
   mp4Url: { primaryLinkLabel: string; primaryLinkUrl: string; secondaryLinks: null } | null;
   transcript: string;
+  summary?: string;
   calendarEventId?: string;
   workspaceMemberId?: string;
 };

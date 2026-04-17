@@ -5,9 +5,22 @@ import type {
   RecordingUpsertInput,
   SyncResult,
 } from './types';
-import { getRestApiUrl, restHeaders } from './utils';
+import { buildRestUrl, getRestApiUrl, restHeaders } from './utils';
 
 const TWENTY_API_KEY: string = process.env.TWENTY_API_KEY ?? '';
+
+const authHeaders = () => ({ Authorization: `Bearer ${TWENTY_API_KEY}` });
+
+// --- REST API response types ---
+
+type TwentyListResponse<T extends string> = {
+  data?: Record<T, Record<string, unknown>[]>;
+};
+
+type TwentyDetailResponse = {
+  data?: Record<string, unknown>;
+  id?: string;
+};
 
 // --- Platform Detection ---
 
@@ -22,9 +35,73 @@ export const detectPlatform = (meetingUrl: string): MeetingPlatform => {
 };
 
 // --- Calendar event ownership resolution ---
-// Walk CalendarEvent -> CalendarChannelEventAssociation -> CalendarChannel -> ConnectedAccount -> WorkspaceMember
+// Primary: CalendarEvent -> CalendarChannelEventAssociation -> CalendarChannel -> ConnectedAccount -> WorkspaceMember
+// Fallback: CalendarEventParticipant with workspaceMemberId
 
 const ownershipCache = new Map<string, CalendarEventOwnership>();
+
+const resolveViaChannelChain = async (
+  calendarEventId: string,
+): Promise<CalendarEventOwnership | null> => {
+  // 1. CalendarEvent -> CalendarChannelEventAssociation -> calendarChannelId
+  const assocUrl = buildRestUrl('calendarChannelEventAssociations', {
+    filter: { calendarEventId: { eq: calendarEventId } },
+    limit: 1,
+  });
+  const assocResponse = await axios.get<TwentyListResponse<'calendarChannelEventAssociations'>>(
+    assocUrl,
+    { headers: authHeaders() },
+  );
+
+  const associations = assocResponse.data?.data?.calendarChannelEventAssociations ?? [];
+  if (associations.length === 0) return null;
+
+  const calendarChannelId = associations[0].calendarChannelId as string | undefined;
+  if (!calendarChannelId) return null;
+
+  // 2. CalendarChannel -> connectedAccountId
+  const channelResponse = await axios.get<TwentyDetailResponse>(
+    `${getRestApiUrl()}/calendarChannels/${calendarChannelId}`,
+    { headers: authHeaders() },
+  );
+
+  const channelBody = channelResponse.data?.data ?? channelResponse.data;
+  const channelData = (channelBody as Record<string, unknown>)?.calendarChannel ?? channelBody;
+  const connectedAccountId = (channelData as Record<string, unknown>)?.connectedAccountId as string | undefined;
+  if (!connectedAccountId) return null;
+
+  // 3. ConnectedAccount -> accountOwnerId (= workspaceMemberId)
+  const accountResponse = await axios.get<TwentyDetailResponse>(
+    `${getRestApiUrl()}/connectedAccounts/${connectedAccountId}`,
+    { headers: authHeaders() },
+  );
+
+  const accountBody = accountResponse.data?.data ?? accountResponse.data;
+  const accountData = (accountBody as Record<string, unknown>)?.connectedAccount ?? accountBody;
+  const workspaceMemberId = (accountData as Record<string, unknown>)?.accountOwnerId as string | undefined;
+  if (!workspaceMemberId) return null;
+
+  return { workspaceMemberId };
+};
+
+const resolveViaParticipants = async (
+  calendarEventId: string,
+): Promise<CalendarEventOwnership | null> => {
+  const url = buildRestUrl('calendarEventParticipants', {
+    filter: { calendarEventId: { eq: calendarEventId } },
+    limit: 10,
+  });
+  const response = await axios.get<TwentyListResponse<'calendarEventParticipants'>>(
+    url,
+    { headers: authHeaders() },
+  );
+  const participants = response.data?.data?.calendarEventParticipants ?? [];
+  for (const p of participants) {
+    const wmId = p.workspaceMemberId as string | undefined;
+    if (wmId) return { workspaceMemberId: wmId };
+  }
+  return null;
+};
 
 export const resolveCalendarEventOwner = async (
   calendarEventId: string,
@@ -32,77 +109,41 @@ export const resolveCalendarEventOwner = async (
   const cached = ownershipCache.get(calendarEventId);
   if (cached) return cached;
 
-  const result: CalendarEventOwnership = {};
+  let result: CalendarEventOwnership = {};
 
+  // Try primary chain: association -> channel -> account -> member
   try {
-    // 1. CalendarEvent -> CalendarChannelEventAssociation -> calendarChannelId
-    const assocResponse = await axios({
-      method: 'GET',
-      headers: { Authorization: `Bearer ${TWENTY_API_KEY}` },
-      url: `${getRestApiUrl()}/calendarChannelEventAssociations?filter=calendarEventId%5Beq%5D%3A%22${encodeURIComponent(calendarEventId)}%22&limit=1`,
-    });
+    const primary = await resolveViaChannelChain(calendarEventId);
+    if (primary?.workspaceMemberId) result = primary;
+  } catch {
+    // Chain broken (404 on channel/account), fall through
+  }
 
-    const associations: Record<string, unknown>[] =
-      assocResponse.data?.data?.calendarChannelEventAssociations ?? [];
-    if (associations.length === 0) {
-      ownershipCache.set(calendarEventId, result);
-      return result;
-    }
-
-    const calendarChannelId = associations[0].calendarChannelId as string | undefined;
-    if (!calendarChannelId) {
-      ownershipCache.set(calendarEventId, result);
-      return result;
-    }
-
-    // 2. CalendarChannel -> connectedAccountId
-    const channelResponse = await axios({
-      method: 'GET',
-      headers: { Authorization: `Bearer ${TWENTY_API_KEY}` },
-      url: `${getRestApiUrl()}/calendarChannels/${calendarChannelId}`,
-    });
-
-    const channelData = channelResponse.data?.data ?? channelResponse.data;
-    const connectedAccountId = channelData?.connectedAccountId as string | undefined;
-    if (!connectedAccountId) {
-      ownershipCache.set(calendarEventId, result);
-      return result;
-    }
-
-    // 3. ConnectedAccount -> accountOwnerId (= workspaceMemberId)
-    const accountResponse = await axios({
-      method: 'GET',
-      headers: { Authorization: `Bearer ${TWENTY_API_KEY}` },
-      url: `${getRestApiUrl()}/connectedAccounts/${connectedAccountId}`,
-    });
-
-    const accountData = accountResponse.data?.data ?? accountResponse.data;
-    const workspaceMemberId = accountData?.accountOwnerId as string | undefined;
-    if (!workspaceMemberId) {
-      ownershipCache.set(calendarEventId, result);
-      return result;
-    }
-    result.workspaceMemberId = workspaceMemberId;
-
-    // 4. WorkspaceMember -> display name
+  // Fallback 1: participant with workspaceMemberId
+  if (!result.workspaceMemberId) {
     try {
-      const memberResponse = await axios({
-        method: 'GET',
-        headers: { Authorization: `Bearer ${TWENTY_API_KEY}` },
-        url: `${getRestApiUrl()}/workspaceMembers/${workspaceMemberId}`,
-      });
+      const participant = await resolveViaParticipants(calendarEventId);
+      if (participant?.workspaceMemberId) result = participant;
+    } catch {
+      // fall through
+    }
+  }
 
-      const memberData = memberResponse.data?.data ?? memberResponse.data;
-      const firstName = (memberData?.name?.firstName as string) ?? '';
-      const lastName = (memberData?.name?.lastName as string) ?? '';
-      const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  // Resolve display name if we have a workspaceMemberId but no name
+  if (result.workspaceMemberId && !result.workspaceMemberName) {
+    try {
+      const memberResponse = await axios.get<TwentyDetailResponse>(
+        `${getRestApiUrl()}/workspaceMembers/${result.workspaceMemberId}`,
+        { headers: authHeaders() },
+      );
+      const memberBody = memberResponse.data?.data ?? memberResponse.data;
+      const memberData = (memberBody as Record<string, unknown>)?.workspaceMember ?? memberBody;
+      const name = (memberData as Record<string, unknown>)?.name as { firstName?: string; lastName?: string } | undefined;
+      const fullName = [name?.firstName, name?.lastName].filter(Boolean).join(' ');
       if (fullName) result.workspaceMemberName = fullName;
     } catch {
-      // Non-fatal: we still have the workspaceMemberId
+      // Non-fatal
     }
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    console.warn(`Ownership resolution failed for calendarEvent ${calendarEventId}: ${msg}`);
   }
 
   ownershipCache.set(calendarEventId, result);
@@ -111,17 +152,36 @@ export const resolveCalendarEventOwner = async (
 
 // --- Recording CRUD ---
 
+export const checkIfRecordingExistsForEvent = async (
+  calendarEventId: string,
+): Promise<boolean> => {
+  try {
+    const url = buildRestUrl('recordings', {
+      filter: { calendarEventId: { eq: calendarEventId } },
+      limit: 1,
+    });
+    const response = await axios.get<TwentyListResponse<'recordings'>>(url, {
+      headers: authHeaders(),
+    });
+    const recordings = response.data?.data?.recordings ?? [];
+    return recordings.length > 0;
+  } catch {
+    return false;
+  }
+};
+
 export const checkIfRecordingExists = async (
   botId: string,
 ): Promise<string | null> => {
   try {
-    const response = await axios({
-      method: 'GET',
-      headers: { Authorization: `Bearer ${TWENTY_API_KEY}` },
-      url: `${getRestApiUrl()}/recordings?filter=botId%5Beq%5D%3A%22${encodeURIComponent(botId)}%22`,
+    const url = buildRestUrl('recordings', {
+      filter: { botId: { eq: botId } },
+    });
+    const response = await axios.get<TwentyListResponse<'recordings'>>(url, {
+      headers: authHeaders(),
     });
     const recording = response.data?.data?.recordings?.[0];
-    return recording?.id ?? null;
+    return (recording?.id as string) ?? null;
   } catch {
     return null;
   }
@@ -141,6 +201,7 @@ export const upsertRecording = async (
     status: opts.status,
     transcript: opts.transcript,
   };
+  if (opts.summary) data.summary = opts.summary;
   if (opts.meetingUrl) data.meetingUrl = opts.meetingUrl;
   if (opts.mp4Url) data.mp4Url = opts.mp4Url;
   if (opts.calendarEventId) data.calendarEventId = opts.calendarEventId;
@@ -177,12 +238,12 @@ export const syncBotRecording = async (
     date: string;
     duration: number;
     transcript: string;
+    summary?: string;
     mp4Url: string;
     meetingUrl: string;
     platform: MeetingPlatform;
     calendarEventId?: string;
     workspaceMemberId?: string;
-    status?: 'COMPLETED' | 'FAILED' | 'IN_PROGRESS';
   },
   result: SyncResult,
 ): Promise<string | null> => {
@@ -195,7 +256,7 @@ export const syncBotRecording = async (
       date: recordingData.date,
       duration: durationMinutes,
       platform: recordingData.platform,
-      status: recordingData.status || 'COMPLETED',
+      status: 'COMPLETED',
       meetingUrl: recordingData.meetingUrl
         ? { primaryLinkLabel: 'Join Meeting', primaryLinkUrl: recordingData.meetingUrl, secondaryLinks: null }
         : null,
@@ -203,6 +264,7 @@ export const syncBotRecording = async (
         ? { primaryLinkLabel: 'Watch Recording', primaryLinkUrl: recordingData.mp4Url, secondaryLinks: null }
         : null,
       transcript: recordingData.transcript,
+      summary: recordingData.summary,
       calendarEventId: recordingData.calendarEventId,
       workspaceMemberId: recordingData.workspaceMemberId,
     });

@@ -7,8 +7,8 @@ import {
 } from 'twenty-sdk';
 import { RECORDING_UNIVERSAL_IDENTIFIER } from '../objects/recording';
 
-export const CALENDAR_EVENT_ON_RECORDING_ID = 'f41b7906-5667-5241-a269-b8140dcfdb53';
-export const RECORDINGS_ON_CALENDAR_EVENT_ID = 'b78cc9fb-d758-5308-a37b-4b4a60a6870b';
+export const CALENDAR_EVENT_ON_RECORDING_ID = '29fe48d1-7e7d-4253-9fea-0a876c2c116d';
+export const RECORDINGS_ON_CALENDAR_EVENT_ID = '131a78b1-f3c9-4b2e-9808-f9eb64bfb832';
 
 export default defineField({
   universalIdentifier: CALENDAR_EVENT_ON_RECORDING_ID,

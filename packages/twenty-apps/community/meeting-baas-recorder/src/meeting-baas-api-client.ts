@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { createBaasClient, type BaasClient, type V2 } from '@meeting-baas/sdk';
 import { createLogger } from './logger';
 import type { MeetingPlatform, RecordingData } from './types';
@@ -30,6 +29,7 @@ export class MeetingBaasApiClient {
     recordingMode?: 'speaker_view' | 'gallery_view' | 'audio_only';
     extra?: Record<string, unknown>;
     callbackUrl?: string;
+    callbackSecret?: string;
   }): Promise<string> {
     logger.debug(`scheduling bot for meeting: ${options.meetingUrl} at ${options.joinAt}`);
 
@@ -43,7 +43,10 @@ export class MeetingBaasApiClient {
       ...(options.extra && { extra: options.extra }),
       ...(options.callbackUrl && {
         callback_enabled: true,
-        callback_config: { url: options.callbackUrl },
+        callback_config: {
+          url: options.callbackUrl,
+          ...(options.callbackSecret && { secret: options.callbackSecret }),
+        },
       }),
     });
 
@@ -57,25 +60,72 @@ export class MeetingBaasApiClient {
     return botId;
   }
 
+  // Batch-create scheduled bots (up to 100 items per call)
+  async batchCreateScheduledBots(
+    items: Array<{
+      meetingUrl: string;
+      joinAt: string;
+      botName?: string;
+      recordingMode?: 'speaker_view' | 'gallery_view' | 'audio_only';
+      extra?: Record<string, unknown>;
+      callbackUrl?: string;
+      callbackSecret?: string;
+    }>,
+  ): Promise<{ botIds: string[]; errors: Array<{ index: number; code: string; message: string }> }> {
+    logger.debug(`batch scheduling ${items.length} bots`);
+
+    const params = items.map((item) => ({
+      meeting_url: item.meetingUrl,
+      join_at: item.joinAt,
+      bot_name: item.botName || 'Twenty CRM Recorder',
+      ...(item.recordingMode && { recording_mode: item.recordingMode }),
+      ...(item.extra && { extra: item.extra }),
+      ...(item.callbackUrl && {
+        callback_enabled: true as const,
+        callback_config: {
+          url: item.callbackUrl,
+          ...(item.callbackSecret && { secret: item.callbackSecret }),
+        },
+      }),
+    }));
+
+    const result = await this.client.batchCreateScheduledBots(params);
+
+    if (!result.success) {
+      const errorInfo = 'code' in result ? ` (${result.code})` : '';
+      throw new Error(`Meeting BaaS batch API error${errorInfo}: ${result.error}`);
+    }
+
+    const botIds = result.data.map((d) => d.bot_id);
+    const errors = result.errors.map((e) => ({
+      index: e.index,
+      code: e.code,
+      message: e.message,
+    }));
+
+    logger.debug(`batch result: ${botIds.length} created, ${errors.length} failed`);
+    return { botIds, errors };
+  }
+
   // Transform V2 bot.completed webhook data into normalized RecordingData
-  async transformWebhookData(
+  transformWebhookData(
     data: V2.BotWebhookCompletedData,
     extra?: Record<string, unknown> | null,
-  ): Promise<RecordingData> {
+  ): RecordingData {
     const duration = data.duration_seconds ?? 0;
     const extraData = extra ?? {};
     const meetingUrl = (extraData.meeting_url as string) || '';
     const title = (extraData.meeting_title as string) || `Recording ${new Date().toLocaleDateString()}`;
     const platform: MeetingPlatform = detectPlatform(meetingUrl);
 
-    const transcript = await this.fetchTranscript(data);
-
     return {
       botId: data.bot_id,
       title,
       date: data.joined_at || new Date().toISOString(),
       duration,
-      transcript,
+      transcript: '',
+      transcriptionUrl: data.transcription || undefined,
+      diarizationUrl: data.diarization || undefined,
       mp4Url: data.video || '',
       meetingUrl,
       platform,
@@ -83,60 +133,46 @@ export class MeetingBaasApiClient {
     };
   }
 
-  // Fetch and format transcript from the signed URL provided in webhook data.
-  // V2 webhook provides `transcription` as a signed URL to a JSON file
-  // containing speaker-attributed segments.
-  private async fetchTranscript(data: V2.BotWebhookCompletedData): Promise<string> {
-    const transcriptionUrl = data.transcription;
-    if (!transcriptionUrl) {
-      logger.debug('no transcription URL in webhook data');
-      return '';
-    }
+  // Fetch and format transcript from diarization or transcription URL
+  async fetchTranscript(recordingData: RecordingData): Promise<string> {
+    // Prefer diarization (speaker-attributed)
+    const url = recordingData.diarizationUrl || recordingData.transcriptionUrl;
+    if (!url) return '';
 
     try {
-      logger.debug('fetching transcription from signed URL');
-      const response = await axios.get(transcriptionUrl, { timeout: 30000 });
-      const transcriptionData = response.data;
-
-      // The transcription file is a JSON array of speaker segments:
-      // [{ speaker: "Name", words: [{ start, end, word }] }, ...]
-      if (Array.isArray(transcriptionData)) {
-        return this.formatTranscriptSegments(transcriptionData);
+      const response = await fetch(url);
+      if (!response.ok) {
+        logger.warn(`Failed to fetch transcript: ${response.status}`);
+        return '';
       }
 
-      // If it's a string (plain text transcript), return as-is
-      if (typeof transcriptionData === 'string') {
-        return transcriptionData;
+      const text = await response.text();
+
+      if (recordingData.diarizationUrl) {
+        // Diarization is JSONL: one JSON object per line
+        // Format: {"speaker": "Name", "text": "...", "start": 0.0, "end": 1.0}
+        return text
+          .split('\n')
+          .filter((line) => line.trim())
+          .map((line) => {
+            try {
+              const entry = JSON.parse(line) as Record<string, unknown>;
+              const speaker = (entry.speaker as string) || 'Unknown';
+              const content = (entry.text as string) || '';
+              return `${speaker}: ${content}`;
+            } catch {
+              return '';
+            }
+          })
+          .filter(Boolean)
+          .join('\n');
       }
 
-      logger.warn('unexpected transcription format, storing as JSON');
-      return JSON.stringify(transcriptionData);
+      return text;
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.warn(`failed to fetch transcription: ${message}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.warn(`Failed to fetch transcript: ${msg}`);
       return '';
     }
-  }
-
-  // Format transcript segments into readable speaker-attributed text
-  private formatTranscriptSegments(
-    segments: Array<{ speaker?: string; words?: Array<{ word: string }> }>,
-  ): string {
-    const lines: string[] = [];
-    let currentSpeaker = '';
-
-    for (const segment of segments) {
-      const speaker = segment.speaker || 'Unknown';
-      const text = segment.words?.map((w) => w.word).join(' ') || '';
-      if (!text) continue;
-
-      if (speaker !== currentSpeaker) {
-        currentSpeaker = speaker;
-        lines.push(`\n${speaker}:`);
-      }
-      lines.push(text);
-    }
-
-    return lines.join('\n').trim();
   }
 }

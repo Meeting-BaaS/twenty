@@ -2,7 +2,7 @@ import { defineNavigationMenuItem, NavigationMenuItemType } from 'twenty-sdk';
 import { RECORDING_UNIVERSAL_IDENTIFIER } from '../objects/recording';
 
 export default defineNavigationMenuItem({
-  universalIdentifier: '6e7bbaa0-d46f-5701-ae91-7346afcb936c',
+  universalIdentifier: 'a569ca64-99b6-4334-a51e-d5fc59e8da57',
   position: 0,
   type: NavigationMenuItemType.OBJECT,
   targetObjectUniversalIdentifier: RECORDING_UNIVERSAL_IDENTIFIER,

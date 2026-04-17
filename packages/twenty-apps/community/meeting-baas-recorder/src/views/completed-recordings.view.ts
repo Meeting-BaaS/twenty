@@ -12,24 +12,24 @@ import {
 } from '../objects/recording';
 
 export default defineView({
-  universalIdentifier: '394e8d23-555f-5bf7-9b4e-367b6dbf38b0',
+  universalIdentifier: 'd6325047-8ba7-4976-a732-4e280db36dfa',
   name: 'Completed Recordings',
   objectUniversalIdentifier: RECORDING_UNIVERSAL_IDENTIFIER,
   type: ViewType.TABLE,
   icon: 'IconCheck',
   position: 1,
   fields: [
-    { universalIdentifier: '0028769e-bca1-596c-aafe-fc5531db661a', fieldMetadataUniversalIdentifier: NAME_FIELD_ID, position: 0, isVisible: true, size: 200 },
-    { universalIdentifier: '1fa50163-249f-5803-bbce-541ed672feea', fieldMetadataUniversalIdentifier: DATE_FIELD_ID, position: 1, isVisible: true, size: 150 },
-    { universalIdentifier: 'f9905717-131e-59df-99a9-44f33a2beded', fieldMetadataUniversalIdentifier: DURATION_FIELD_ID, position: 2, isVisible: true, size: 100 },
-    { universalIdentifier: 'bdacee9b-9cb3-5948-9421-6908309c21b9', fieldMetadataUniversalIdentifier: PLATFORM_FIELD_ID, position: 3, isVisible: true, size: 130 },
-    { universalIdentifier: '62292205-0c46-55b9-be01-f15297b66d87', fieldMetadataUniversalIdentifier: STATUS_FIELD_ID, position: 4, isVisible: true, size: 110 },
-    { universalIdentifier: 'b9814d60-e66b-57c2-a67b-3ecd4eddbc43', fieldMetadataUniversalIdentifier: MEETING_URL_FIELD_ID, position: 5, isVisible: true, size: 140 },
-    { universalIdentifier: '67643943-04f2-5b7c-9592-0d69824a3967', fieldMetadataUniversalIdentifier: MP4_URL_FIELD_ID, position: 6, isVisible: true, size: 140 },
+    { universalIdentifier: 'b953f475-0eb7-4864-b3e8-d2c4e8b02a3b', fieldMetadataUniversalIdentifier: NAME_FIELD_ID, position: 0, isVisible: true, size: 200 },
+    { universalIdentifier: 'b3bd42e6-05cd-4c3a-bfad-726ef75a0c15', fieldMetadataUniversalIdentifier: DATE_FIELD_ID, position: 1, isVisible: true, size: 150 },
+    { universalIdentifier: 'e15d29e8-468a-4b8f-93cb-a71d89f01d45', fieldMetadataUniversalIdentifier: DURATION_FIELD_ID, position: 2, isVisible: true, size: 100 },
+    { universalIdentifier: 'c2b37ddf-f16f-4b5f-b443-c6b5214eb4b4', fieldMetadataUniversalIdentifier: PLATFORM_FIELD_ID, position: 3, isVisible: true, size: 130 },
+    { universalIdentifier: '489703b0-1cd1-4422-98d8-6d8d32063821', fieldMetadataUniversalIdentifier: STATUS_FIELD_ID, position: 4, isVisible: true, size: 110 },
+    { universalIdentifier: '76d8a2c2-259f-49cc-8921-6ebad06ac276', fieldMetadataUniversalIdentifier: MEETING_URL_FIELD_ID, position: 5, isVisible: true, size: 140 },
+    { universalIdentifier: '4d31d04c-f90e-413a-9c67-38cb6a3594a3', fieldMetadataUniversalIdentifier: MP4_URL_FIELD_ID, position: 6, isVisible: true, size: 140 },
   ],
   filters: [
     {
-      universalIdentifier: '1f9a7d8e-19d2-5d39-8783-65529e0048fa',
+      universalIdentifier: 'ee754547-ed53-4d9e-8155-fbf58d8ed016',
       fieldMetadataUniversalIdentifier: STATUS_FIELD_ID,
       operand: ViewFilterOperand.IS,
       value: 'COMPLETED',
