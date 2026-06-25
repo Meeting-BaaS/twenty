@@ -14,6 +14,7 @@ import { CALL_RECORDER_JOIN_EARLY_MINUTES_ENV_VAR_NAME } from 'src/logic-functio
 import { CALL_RECORDER_NAME_ENV_VAR_NAME } from 'src/logic-functions/constants/call-recorder-name-env-var-name';
 import { CALL_RECORDER_NOONE_JOINED_TIMEOUT_SECONDS } from 'src/logic-functions/constants/call-recorder-noone-joined-timeout-seconds';
 import { CALL_RECORDER_NOONE_JOINED_TIMEOUT_SECONDS_ENV_VAR_NAME } from 'src/logic-functions/constants/call-recorder-noone-joined-timeout-seconds-env-var-name';
+import { CALL_RECORDER_PROVIDER_ENV_VAR_NAME } from 'src/logic-functions/constants/call-recorder-provider-env-var-name';
 import { CALL_RECORDER_RECORDING_RETENTION_HOURS_ENV_VAR_NAME } from 'src/logic-functions/constants/call-recorder-recording-retention-hours-env-var-name';
 import { CALL_RECORDER_WAITING_ROOM_TIMEOUT_SECONDS } from 'src/logic-functions/constants/call-recorder-waiting-room-timeout-seconds';
 import { CALL_RECORDER_WAITING_ROOM_TIMEOUT_SECONDS_ENV_VAR_NAME } from 'src/logic-functions/constants/call-recorder-waiting-room-timeout-seconds-env-var-name';
@@ -24,6 +25,10 @@ import { DEFAULT_RECALL_REGION } from 'src/logic-functions/constants/default-rec
 import { RECALL_API_KEY_ENV_VAR_NAME } from 'src/logic-functions/constants/recall-api-key-env-var-name';
 import { RECALL_REGION_ENV_VAR_NAME } from 'src/logic-functions/constants/recall-region-env-var-name';
 import { RECALL_WEBHOOK_SECRET_ENV_VAR_NAME } from 'src/logic-functions/constants/recall-webhook-secret-env-var-name';
+import { MEETING_BAAS_API_BASE_URL_ENV_VAR_NAME } from 'src/logic-functions/constants/meeting-baas-api-base-url-env-var-name';
+import { MEETING_BAAS_API_KEY_ENV_VAR_NAME } from 'src/logic-functions/constants/meeting-baas-api-key-env-var-name';
+import { MEETING_BAAS_CALLBACK_SECRET_ENV_VAR_NAME } from 'src/logic-functions/constants/meeting-baas-callback-secret-env-var-name';
+import { MEETING_BAAS_CALLBACK_URL_ENV_VAR_NAME } from 'src/logic-functions/constants/meeting-baas-callback-url-env-var-name';
 
 export default defineApplication({
   universalIdentifier: APPLICATION_UNIVERSAL_IDENTIFIER,
@@ -72,11 +77,15 @@ export default defineApplication({
     },
   },
   serverVariables: {
+    [CALL_RECORDER_PROVIDER_ENV_VAR_NAME]: {
+      description:
+        'Recording provider to use. Supported values: recall, meeting-baas. Defaults to recall when unset.',
+      isSecret: false,
+    },
     [RECALL_API_KEY_ENV_VAR_NAME]: {
       description:
-        'Recall.ai API key for the configured region. Set by the server admin on this registration after installation; used to create, update, and cancel scheduled recording bots.',
+        'Recall.ai API key for the configured region. Required when CALL_RECORDER_PROVIDER is recall.',
       isSecret: true,
-      isRequired: true,
     },
     [RECALL_REGION_ENV_VAR_NAME]: {
       description: `Recall.ai region used for API requests. Defaults to ${DEFAULT_RECALL_REGION} when unset. Europe Frankfurt is eu-central-1.`,
@@ -88,9 +97,28 @@ export default defineApplication({
     },
     [RECALL_WEBHOOK_SECRET_ENV_VAR_NAME]: {
       description:
-        'Recall.ai webhook signing secret (whsec_...). Set by the server admin from the Recall webhook endpoint settings; used to verify the Svix signature of incoming Recall webhook deliveries.',
+        'Recall.ai webhook signing secret (whsec_...). Required when CALL_RECORDER_PROVIDER is recall.',
       isSecret: true,
-      isRequired: true,
+    },
+    [MEETING_BAAS_API_KEY_ENV_VAR_NAME]: {
+      description:
+        'Meeting BaaS API key. Required when CALL_RECORDER_PROVIDER is meeting-baas.',
+      isSecret: true,
+    },
+    [MEETING_BAAS_API_BASE_URL_ENV_VAR_NAME]: {
+      description:
+        'Meeting BaaS API base URL. Defaults to https://api.meetingbaas.com when unset.',
+      isSecret: false,
+    },
+    [MEETING_BAAS_CALLBACK_URL_ENV_VAR_NAME]: {
+      description:
+        'Absolute Twenty server webhook URL for the meeting-baas-webhook logic function. Required when CALL_RECORDER_PROVIDER is meeting-baas.',
+      isSecret: false,
+    },
+    [MEETING_BAAS_CALLBACK_SECRET_ENV_VAR_NAME]: {
+      description:
+        'Shared secret sent by Meeting BaaS in the x-mb-secret header. Required when CALL_RECORDER_PROVIDER is meeting-baas.',
+      isSecret: true,
     },
   },
 });

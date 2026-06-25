@@ -9,6 +9,7 @@ import { findCallRecordingsByIds } from 'src/logic-functions/data/find-call-reco
 import { getCurrentWorkspaceId } from 'src/logic-functions/data/get-current-workspace-id.util';
 import { getUniqueSortedIds } from 'src/logic-functions/utils/get-unique-sorted-ids.util';
 import { isNonEmptyString } from 'src/logic-functions/utils/is-non-empty-string.util';
+import { getCallRecorderProvider } from 'src/logic-functions/providers/get-call-recorder-provider.util';
 import {
   listScheduledRecallBots,
   type RecallScheduledBot,
@@ -29,6 +30,10 @@ export const reapOrphanedCallRecorders = async ({
   joinAtAfter: string;
   joinAtBefore: string;
 }): Promise<ReapOrphanedCallRecordersResult> => {
+  if (getCallRecorderProvider() !== 'recall') {
+    return { scannedBotCount: 0, canceledExternalBotIds: [] };
+  }
+
   const listResult = await listScheduledRecallBots({
     joinAtAfter,
     joinAtBefore,

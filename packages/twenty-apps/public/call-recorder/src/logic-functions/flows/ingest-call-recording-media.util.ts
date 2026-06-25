@@ -76,6 +76,59 @@ export const ingestCallRecordingMedia = async ({
   return updateFields;
 };
 
+export const ingestCallRecordingMediaFromUrls = async ({
+  callRecordingId,
+  hasAudio,
+  hasVideo,
+  audioUrl,
+  videoUrl,
+}: {
+  callRecordingId: string;
+  hasAudio: boolean;
+  hasVideo: boolean;
+  audioUrl: string | undefined;
+  videoUrl: string | undefined;
+}): Promise<CallRecordingMediaUpdateFields> => {
+  if (hasAudio && hasVideo) {
+    return {};
+  }
+
+  const metadataClient = new MetadataApiClient();
+  const updateFields: CallRecordingMediaUpdateFields = {};
+
+  if (!hasVideo && !isUndefined(videoUrl)) {
+    const video = await ingestMediaArtifact({
+      callRecordingId,
+      metadataClient,
+      url: videoUrl,
+      fileName: 'video.mp4',
+      fieldMetadataUniversalIdentifier:
+        CALL_RECORDING_VIDEO_FIELD_UNIVERSAL_IDENTIFIER,
+    });
+
+    if (!isUndefined(video)) {
+      updateFields.video = video;
+    }
+  }
+
+  if (!hasAudio && !isUndefined(audioUrl)) {
+    const audio = await ingestMediaArtifact({
+      callRecordingId,
+      metadataClient,
+      url: audioUrl,
+      fileName: 'audio.mp3',
+      fieldMetadataUniversalIdentifier:
+        CALL_RECORDING_AUDIO_FIELD_UNIVERSAL_IDENTIFIER,
+    });
+
+    if (!isUndefined(audio)) {
+      updateFields.audio = audio;
+    }
+  }
+
+  return updateFields;
+};
+
 const ingestMediaArtifact = async ({
   callRecordingId,
   metadataClient,
