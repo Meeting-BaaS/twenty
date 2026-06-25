@@ -125,10 +125,15 @@ Applications → Call Recorder):
 
 | Server variable | Required | Purpose |
 |---|---|---|
-| `RECALL_API_KEY` | Yes | Recall.ai API key for the configured region; used to schedule, update, and cancel bots. |
+| `CALL_RECORDER_PROVIDER` | No | Recording provider. Use `recall` (default) or `meeting-baas`. |
+| `RECALL_API_KEY` | Provider | Recall.ai API key for the configured region; required when `CALL_RECORDER_PROVIDER` is `recall`. |
 | `RECALL_REGION` | No | Recall.ai region for API requests. Defaults to `eu-central-1` (Europe / Frankfurt). |
 | `CALL_RECORDER_RECORDING_RETENTION_HOURS` | No | How long Recall.ai retains the source media after processing. Defaults to `166` hours (6 days 22 hours), just under Recall's 168-hour free-storage window. Values above `168` may incur Recall storage charges. Twenty's ingested copy is unaffected. |
-| `RECALL_WEBHOOK_SECRET` | Yes | Svix signing secret (`whsec_…`) used to verify incoming Recall webhooks. |
+| `RECALL_WEBHOOK_SECRET` | Provider | Svix signing secret (`whsec_…`) used to verify incoming Recall webhooks; required when `CALL_RECORDER_PROVIDER` is `recall`. |
+| `MEETING_BAAS_API_KEY` | Provider | Meeting BaaS API key; required when `CALL_RECORDER_PROVIDER` is `meeting-baas`. A Sending Access key can schedule bots; Full Access is needed for cancellation and reconciliation. |
+| `MEETING_BAAS_API_BASE_URL` | No | Meeting BaaS API base URL. Defaults to `https://api.meetingbaas.com`. |
+| `MEETING_BAAS_CALLBACK_URL` | Provider | Absolute Twenty server webhook URL for `meeting-baas-webhook`; required when `CALL_RECORDER_PROVIDER` is `meeting-baas`. |
+| `MEETING_BAAS_CALLBACK_SECRET` | Provider | Shared secret sent by Meeting BaaS in the `x-mb-secret` callback header; required when `CALL_RECORDER_PROVIDER` is `meeting-baas`. |
 
 ### Application variables
 
@@ -171,3 +176,28 @@ ID is the **Recall webhook logic function**.
 3. Set it as the `RECALL_WEBHOOK_SECRET` server variable on the
    **Call Recorder** application registration.
 4. Set `RECALL_API_KEY` (and optionally `RECALL_REGION`) the same way.
+
+### Configuring Meeting BaaS
+
+Set `CALL_RECORDER_PROVIDER=meeting-baas`, then set `MEETING_BAAS_API_KEY`,
+`MEETING_BAAS_CALLBACK_URL`, and `MEETING_BAAS_CALLBACK_SECRET`.
+
+Use this URL on your deployment for `MEETING_BAAS_CALLBACK_URL`, replacing only
+the host:
+
+```text
+https://<your-twenty-host>/webhooks/server/8da4b8b5-5edf-4880-b51f-ab6e679ec617/7a30ca04-7e6e-4a85-96d0-7e16adc3e2f1
+```
+
+The app passes this URL to Meeting BaaS in each scheduled bot's
+`callback_config`. Meeting BaaS should send completed and failed bot callbacks
+with the app metadata in `data.extra`; the Twenty webhook resolver reads
+`data.extra.twentyWorkspaceId`.
+
+Meeting BaaS docs:
+
+- API v2: https://docs.meetingbaas.com/api-v2
+- Scheduled bots: https://docs.meetingbaas.com/api-v2/reference/bots/createScheduledBot
+- Artifacts and callbacks: https://docs.meetingbaas.com/api-v2/getting-started/getting-the-data
+- Bot status: https://docs.meetingbaas.com/api-v2/reference/bots/getBotStatus
+- API keys: https://docs.meetingbaas.com/api-v2/api-keys

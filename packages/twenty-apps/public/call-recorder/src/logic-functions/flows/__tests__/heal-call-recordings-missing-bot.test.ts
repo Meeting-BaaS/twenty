@@ -10,8 +10,8 @@ vi.mock('src/logic-functions/data/get-current-workspace-id.util', () => ({
   getCurrentWorkspaceId: getCurrentWorkspaceIdMock,
 }));
 
-vi.mock('src/logic-functions/recall-api/schedule-recall-bot.util', () => ({
-  scheduleRecallBot: scheduleRecallBotMock,
+vi.mock('src/logic-functions/providers/schedule-call-recorder-bot.util', () => ({
+  scheduleCallRecorderBot: scheduleRecallBotMock,
 }));
 
 const NOW = new Date('2026-01-01T12:00:00.000Z');

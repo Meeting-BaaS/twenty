@@ -5,7 +5,7 @@ import { type MeetingRecording } from 'src/logic-functions/types/meeting-recordi
 import { buildRecallBotMetadata } from 'src/logic-functions/domain/build-recall-bot-metadata.util';
 import { computeRecallBotJoinAt } from 'src/logic-functions/domain/compute-recall-bot-join-at.util';
 import { getCurrentWorkspaceId } from 'src/logic-functions/data/get-current-workspace-id.util';
-import { rescheduleRecallBot } from 'src/logic-functions/recall-api/reschedule-recall-bot.util';
+import { rescheduleCallRecorderBot } from 'src/logic-functions/providers/reschedule-call-recorder-bot.util';
 import { updateCallRecording } from 'src/logic-functions/data/update-call-recording.util';
 
 const RECALL_BOT_NOT_FOUND_STATUS = 404;
@@ -33,13 +33,13 @@ export const rescheduleCallRecordingBot = async (
 
   if (isUndefined(workspaceId)) {
     console.warn(
-      `[call-recorder] cannot reschedule Recall bot for callRecording ${callRecording.id}: workspace id unavailable`,
+      `[call-recorder] cannot reschedule provider bot for callRecording ${callRecording.id}: workspace id unavailable`,
     );
 
     return;
   }
 
-  const rescheduleResult = await rescheduleRecallBot({
+  const rescheduleResult = await rescheduleCallRecorderBot({
     externalBotId,
     meetingUrl,
     joinAt,
@@ -51,6 +51,13 @@ export const rescheduleCallRecordingBot = async (
   });
 
   if (rescheduleResult.ok) {
+    if (rescheduleResult.externalBotId !== externalBotId) {
+      await updateCallRecording(client, {
+        id: callRecording.id,
+        data: { externalBotId: rescheduleResult.externalBotId },
+      });
+    }
+
     return;
   }
 
@@ -65,6 +72,6 @@ export const rescheduleCallRecordingBot = async (
   }
 
   console.warn(
-    `[call-recorder] failed to update Recall bot for callRecording ${callRecording.id}: ${rescheduleResult.errorMessage}`,
+    `[call-recorder] failed to update provider bot for callRecording ${callRecording.id}: ${rescheduleResult.errorMessage}`,
   );
 };

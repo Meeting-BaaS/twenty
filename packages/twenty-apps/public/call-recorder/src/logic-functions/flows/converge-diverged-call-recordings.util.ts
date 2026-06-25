@@ -15,7 +15,10 @@ import {
   type ConnectionPage,
 } from 'src/logic-functions/data/fetch-all-nodes.util';
 import { getRecallBot } from 'src/logic-functions/recall-api/get-recall-bot.util';
-import { ingestCallRecordingMedia } from 'src/logic-functions/flows/ingest-call-recording-media.util';
+import {
+  ingestCallRecordingMedia,
+  ingestCallRecordingMediaFromUrls,
+} from 'src/logic-functions/flows/ingest-call-recording-media.util';
 import { isCallRecordingStatusDowngrade } from 'src/logic-functions/domain/is-call-recording-status-downgrade.util';
 import { isNonEmptyString } from 'src/logic-functions/utils/is-non-empty-string.util';
 import { parseTranscriptMarker } from 'src/logic-functions/domain/parse-transcript-marker.util';
@@ -27,6 +30,12 @@ import {
   updateCallRecording,
   type CallRecordingUpdateFields,
 } from 'src/logic-functions/data/update-call-recording.util';
+import { mapMeetingBaasStatusToCallRecordingStatus } from 'src/logic-functions/domain/map-meeting-baas-status-to-call-recording-status.util';
+import { getMeetingBaasBot } from 'src/logic-functions/meeting-baas-api/get-meeting-baas-bot.util';
+import { normalizeMeetingBaasTranscript } from 'src/logic-functions/meeting-baas-api/normalize-meeting-baas-transcript.util';
+import { getCallRecorderProvider } from 'src/logic-functions/providers/get-call-recorder-provider.util';
+import { asRecord } from 'src/logic-functions/utils/as-record.util';
+import { getString } from 'src/logic-functions/utils/get-string.util';
 
 const CONVERGENCE_LOOKBACK_DAYS = 7;
 
@@ -59,7 +68,20 @@ type DivergedCallRecordingNode = {
   calendarEvent?: { startsAt?: string | null; endsAt?: string | null } | null;
 };
 
-// Webhook deliveries get lost; this pull pass re-derives state from Recall.
+type ProviderBotConvergence = {
+  status: CallRecordingStatus | undefined;
+  startedAt: string | undefined;
+  endedAt: string | undefined;
+  externalRecordingId: string | undefined;
+  isRecordingDone: boolean;
+  failureReason: string | undefined;
+  audioUrl?: string;
+  videoUrl?: string;
+  transcriptionUrl?: string;
+  rawTranscriptionUrl?: string;
+};
+
+// Webhook deliveries get lost; this pull pass re-derives state from the configured provider.
 export const convergeDivergedCallRecordings = async ({
   client,
   now,
@@ -91,7 +113,7 @@ export const convergeDivergedCallRecordings = async ({
 
     if (isUndefined(candidate.externalBotId)) {
       console.warn(
-        `[call-recorder] call recording ${candidate.id} diverged but has no Recall bot id; it will not converge automatically`,
+        `[call-recorder] call recording ${candidate.id} diverged but has no provider bot id; it will not converge automatically`,
       );
       result.unconvergeableCallRecordingIds.push(candidate.id);
       continue;
@@ -226,6 +248,17 @@ const convergeCallRecording = async ({
   now: Date;
   result: ConvergeDivergedCallRecordingsResult;
 }): Promise<void> => {
+  if (getCallRecorderProvider() === 'meeting-baas') {
+    await convergeMeetingBaasCallRecording({
+      client,
+      candidate,
+      externalBotId,
+      result,
+    });
+
+    return;
+  }
+
   const botResult = await getRecallBot({ externalBotId });
 
   if (!botResult.ok) {
@@ -234,6 +267,8 @@ const convergeCallRecording = async ({
         client,
         candidate,
         externalBotId,
+        providerLabel: 'Recall',
+        failureReason: 'recall_bot_not_found',
         result,
       });
 
@@ -310,6 +345,98 @@ const convergeCallRecording = async ({
   result.updatedCallRecordingIds.push(candidate.id);
 };
 
+const convergeMeetingBaasCallRecording = async ({
+  client,
+  candidate,
+  externalBotId,
+  result,
+}: {
+  client: CoreApiClient;
+  candidate: DivergedCallRecordingCandidate;
+  externalBotId: string;
+  result: ConvergeDivergedCallRecordingsResult;
+}): Promise<void> => {
+  const botResult = await getMeetingBaasBot({ externalBotId });
+
+  if (!botResult.ok) {
+    if (botResult.status === 404) {
+      await markCallRecordingFailedAfterBotLoss({
+        client,
+        candidate,
+        externalBotId,
+        providerLabel: 'Meeting BaaS',
+        failureReason: 'meeting_baas_bot_not_found',
+        result,
+      });
+
+      return;
+    }
+
+    console.warn(
+      `[call-recorder] failed to fetch Meeting BaaS bot ${externalBotId} for call recording ${candidate.id}: ${botResult.errorMessage}`,
+    );
+
+    return;
+  }
+
+  const convergence = extractMeetingBaasConvergence(botResult.bot);
+  const updateData = buildProviderConvergenceFieldUpdates({
+    candidate,
+    convergence,
+    providerFailureFallback: 'meeting_baas_bot_failed',
+  });
+  const externalRecordingId =
+    candidate.externalRecordingId ?? convergence.externalRecordingId;
+
+  if (convergence.isRecordingDone && !isUndefined(externalRecordingId)) {
+    Object.assign(
+      updateData,
+      await ingestCallRecordingMediaFromUrls({
+        callRecordingId: candidate.id,
+        hasAudio: isNonEmptyArray(candidate.audio),
+        hasVideo: isNonEmptyArray(candidate.video),
+        audioUrl: convergence.audioUrl,
+        videoUrl: convergence.videoUrl,
+      }),
+    );
+
+    const transcript = await resolveMeetingBaasTranscript(convergence);
+
+    if (!isUndefined(transcript) && isUndefined(candidate.transcript)) {
+      updateData.transcript = normalizeTranscriptUpdate(transcript);
+    }
+  }
+
+  const terminalArtifactGateFailureUpdate =
+    buildMeetingBaasTerminalArtifactGateFailureUpdate({
+      candidate,
+      convergence,
+      externalRecordingId,
+      updateData,
+    });
+
+  if (!isUndefined(terminalArtifactGateFailureUpdate)) {
+    Object.assign(updateData, terminalArtifactGateFailureUpdate);
+  }
+
+  const completesIngestion = shouldCompleteCallRecordingIngestion({
+    current: candidate,
+    updateData,
+  });
+
+  if (Object.keys(updateData).length === 0 && !completesIngestion) {
+    return;
+  }
+
+  await persistCallRecordingProgress(client, {
+    id: candidate.id,
+    current: candidate,
+    updateData,
+  });
+
+  result.updatedCallRecordingIds.push(candidate.id);
+};
+
 // Pure merge: fill only unset candidate fields and never downgrade status.
 const buildConvergenceFieldUpdates = ({
   candidate,
@@ -333,6 +460,51 @@ const buildConvergenceFieldUpdates = ({
     if (convergence.status === CallRecordingStatus.FAILED) {
       updateData.callRecorderFailureReason =
         convergence.failureReason ?? 'recall_bot_failed';
+    }
+  }
+
+  if (isUndefined(candidate.startedAt) && !isUndefined(convergence.startedAt)) {
+    updateData.startedAt = convergence.startedAt;
+  }
+
+  if (isUndefined(candidate.endedAt) && !isUndefined(convergence.endedAt)) {
+    updateData.endedAt = convergence.endedAt;
+  }
+
+  if (
+    isUndefined(candidate.externalRecordingId) &&
+    !isUndefined(convergence.externalRecordingId)
+  ) {
+    updateData.externalRecordingId = convergence.externalRecordingId;
+  }
+
+  return updateData;
+};
+
+const buildProviderConvergenceFieldUpdates = ({
+  candidate,
+  convergence,
+  providerFailureFallback,
+}: {
+  candidate: DivergedCallRecordingCandidate;
+  convergence: ProviderBotConvergence;
+  providerFailureFallback: string;
+}): CallRecordingUpdateFields => {
+  const updateData: CallRecordingUpdateFields = {};
+
+  if (
+    !isUndefined(convergence.status) &&
+    convergence.status !== candidate.status &&
+    !isCallRecordingStatusDowngrade({
+      fromStatus: candidate.status,
+      toStatus: convergence.status,
+    })
+  ) {
+    updateData.status = convergence.status;
+
+    if (convergence.status === CallRecordingStatus.FAILED) {
+      updateData.callRecorderFailureReason =
+        convergence.failureReason ?? providerFailureFallback;
     }
   }
 
@@ -387,6 +559,34 @@ const buildTerminalArtifactGateFailureUpdate = ({
   };
 };
 
+const buildMeetingBaasTerminalArtifactGateFailureUpdate = ({
+  candidate,
+  convergence,
+  externalRecordingId,
+  updateData,
+}: {
+  candidate: DivergedCallRecordingCandidate;
+  convergence: ProviderBotConvergence;
+  externalRecordingId: string | undefined;
+  updateData: CallRecordingUpdateFields;
+}): TerminalArtifactGateFailureUpdate | undefined => {
+  if (
+    candidate.status === CallRecordingStatus.COMPLETED ||
+    updateData.status === CallRecordingStatus.FAILED ||
+    !convergence.isRecordingDone ||
+    !isUndefined(externalRecordingId) ||
+    hasRecordingArtifactPath({ candidate, updateData })
+  ) {
+    return undefined;
+  }
+
+  return {
+    status: CallRecordingStatus.FAILED,
+    callRecorderFailureReason:
+      convergence.failureReason ?? 'recording_artifacts_unavailable',
+  };
+};
+
 const hasRecordingArtifactPath = ({
   candidate,
   updateData,
@@ -415,16 +615,20 @@ const markCallRecordingFailedAfterBotLoss = async ({
   client,
   candidate,
   externalBotId,
+  providerLabel,
+  failureReason,
   result,
 }: {
   client: CoreApiClient;
   candidate: DivergedCallRecordingCandidate;
   externalBotId: string;
+  providerLabel: string;
+  failureReason: string;
   result: ConvergeDivergedCallRecordingsResult;
 }): Promise<void> => {
-  // externalBotId is kept for audit even though the bot is gone at Recall.
+  // externalBotId is kept for audit even though the provider bot is gone.
   console.warn(
-    `[call-recorder] Recall bot ${externalBotId} for call recording ${candidate.id} no longer exists; it will not converge automatically`,
+    `[call-recorder] ${providerLabel} bot ${externalBotId} for call recording ${candidate.id} no longer exists; it will not converge automatically`,
   );
 
   if (
@@ -442,8 +646,61 @@ const markCallRecordingFailedAfterBotLoss = async ({
     id: candidate.id,
     data: {
       status: CallRecordingStatus.FAILED,
-      callRecorderFailureReason: 'recall_bot_not_found',
+      callRecorderFailureReason: failureReason,
     },
   });
   result.markedFailedCallRecordingIds.push(candidate.id);
 };
+
+const extractMeetingBaasConvergence = (
+  bot: Record<string, unknown>,
+): ProviderBotConvergence => {
+  const status = getString(bot.status);
+
+  return {
+    status: mapMeetingBaasStatusToCallRecordingStatus(status),
+    startedAt: getString(bot.joined_at),
+    endedAt: getString(bot.exited_at),
+    externalRecordingId: getString(bot.bot_id),
+    isRecordingDone: status === 'completed',
+    failureReason:
+      getString(bot.error_message) ?? getString(bot.error_code) ?? status,
+    audioUrl: getString(bot.audio),
+    videoUrl: getString(bot.video),
+    transcriptionUrl: getString(bot.transcription),
+    rawTranscriptionUrl: getString(bot.raw_transcription),
+  };
+};
+
+const resolveMeetingBaasTranscript = async (
+  convergence: ProviderBotConvergence,
+): Promise<unknown> => {
+  const transcriptUrl =
+    convergence.transcriptionUrl ?? convergence.rawTranscriptionUrl;
+
+  if (isUndefined(transcriptUrl)) {
+    return undefined;
+  }
+
+  try {
+    const response = await fetch(transcriptUrl, {
+      signal: AbortSignal.timeout(120_000),
+    });
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const transcript = await response.json();
+    const transcriptRecord = asRecord(transcript);
+
+    return transcriptRecord?.transcript ?? transcript;
+  } catch {
+    return undefined;
+  }
+};
+
+const normalizeTranscriptUpdate = (
+  transcript: unknown,
+): Record<string, unknown> =>
+  normalizeMeetingBaasTranscript(transcript) as Record<string, unknown>;
